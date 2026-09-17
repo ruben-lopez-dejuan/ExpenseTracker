@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useConnectivity } from '../context/connectivity-context';
 import { useAppSettings } from '../context/app-settings-context';
 import { useE5Model } from '../context/e5-model-context';
+import { useOfflineSync } from '../context/offline-sync-context';
 import { useAppStyles } from '../lib/themed-styles';
 
 function formatSize(bytes: number) {
@@ -17,10 +18,12 @@ export default function AppStatusBanners() {
   const insets = useSafeAreaInsets();
   const { t } = useAppSettings();
   const connectivity = useConnectivity();
+  const offlineSync = useOfflineSync();
   const model = useE5Model();
   const showModel = ['checking', 'downloading', 'loading', 'error'].includes(model.status);
 
-  if (connectivity.status !== 'offline' && !showModel) return null;
+  const showSync = offlineSync.syncing || offlineSync.pendingCount > 0;
+  if (connectivity.status !== 'offline' && !showModel && !showSync) return null;
 
   const percentage = Math.round(model.progress * 100);
 
@@ -34,9 +37,23 @@ export default function AppStatusBanners() {
           <Ionicons name="cloud-offline-outline" size={21} color="#92400E" />
           <View style={styles.textBlock}>
             <Text style={styles.title}>{t('offline')}</Text>
-            <Text style={styles.message}>{t('checkInternet')}</Text>
+            <Text style={styles.message}>
+              {offlineSync.pendingCount > 0
+                ? `${offlineSync.pendingCount} ${t('offlinePending')}`
+                : t('offlineReady')}
+            </Text>
           </View>
           <Ionicons name="refresh" size={19} color="#92400E" />
+        </Pressable>
+      )}
+
+      {connectivity.status !== 'offline' && showSync && (
+        <Pressable style={[styles.banner, styles.syncing]} onPress={() => void offlineSync.syncNow()}>
+          <Ionicons name={offlineSync.syncing ? 'sync' : 'cloud-upload-outline'} size={21} color="#4338CA" />
+          <View style={styles.textBlock}>
+            <Text style={styles.title}>{offlineSync.syncing ? t('syncingChanges') : t('offlineChanges')}</Text>
+            <Text style={styles.message}>{offlineSync.pendingCount} {t('offlinePending')}</Text>
+          </View>
         </Pressable>
       )}
 
@@ -90,6 +107,7 @@ const lightStyles = StyleSheet.create({
     shadowOffset: { width: 0, height: 3 }, elevation: 7,
   },
   offline: { backgroundColor: '#FFFBEB', borderColor: '#FCD34D' },
+  syncing: { backgroundColor: '#EEF2FF', borderColor: '#A5B4FC' },
   modelLoading: { backgroundColor: '#EEF2FF', borderColor: '#A5B4FC' },
   modelError: { backgroundColor: '#FEF2F2', borderColor: '#FCA5A5' },
   textBlock: { flex: 1 },

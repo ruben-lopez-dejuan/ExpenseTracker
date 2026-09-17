@@ -29,10 +29,10 @@ export function AuthProvider({
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      setSession(data.session);
-      setLoading(false);
-    });
+    void supabase.auth.getSession()
+      .then(({ data }) => setSession(data.session))
+      .catch((error) => console.warn('No se pudo recuperar la sesión guardada:', error))
+      .finally(() => setLoading(false));
 
     const {
       data: { subscription },

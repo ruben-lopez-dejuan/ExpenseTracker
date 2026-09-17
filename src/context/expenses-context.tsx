@@ -1,28 +1,21 @@
-﻿import React, {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useState,
-} from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 
+import { CurrencyCode, useAppSettings } from './app-settings-context';
 import { useAuth } from './auth-context';
+import { useConnectivity } from './connectivity-context';
+import { useOfflineSync } from './offline-sync-context';
 import {
-  CurrencyCode,
-  useAppSettings,
-} from './app-settings-context';
+  createOfflineId,
+  isRetryableSyncError,
+  queueOfflineDelete,
+  queueOfflineUpsert,
+  readOfflineCache,
+  writeOfflineCache,
+} from '../lib/offline-storage';
 import { supabase } from '../lib/supabase';
 
-export type ExpenseStatus =
-  | 'completed'
-  | 'planned';
-
-export type ExpenseSource =
-  | 'manual'
-  | 'text'
-  | 'voice'
-  | 'recurring';
+export type ExpenseStatus = 'completed' | 'planned';
+export type ExpenseSource = 'manual' | 'text' | 'voice' | 'recurring';
 
 export type Expense = {
   id: string;
@@ -50,128 +43,115 @@ export type ExpenseInput = {
 type ExpensesContextType = {
   expenses: Expense[];
   loading: boolean;
-
-  addExpense: (
-    expense: ExpenseInput
-  ) => Promise<void>;
-
-  updateExpense: (
-    id: string,
-    expense: ExpenseInput
-  ) => Promise<void>;
-
-  deleteExpense: (
-    id: string
-  ) => Promise<void>;
-
+  hydrated: boolean;
+  addExpense: (expense: ExpenseInput) => Promise<void>;
+  updateExpense: (id: string, expense: ExpenseInput) => Promise<void>;
+  deleteExpense: (id: string) => Promise<void>;
   refreshExpenses: () => Promise<void>;
-
   total: number;
 };
 
-const ExpensesContext =
-  createContext<ExpensesContextType | undefined>(
-    undefined
-  );
+const ExpensesContext = createContext<ExpensesContextType | undefined>(undefined);
 
 function mapExpense(row: any): Expense {
   return {
     id: row.id,
-    description: row.description,
+    description: row.description ?? '',
     amount: Number(row.amount),
     currency: (row.currency ?? 'EUR') as CurrencyCode,
     categoryId: row.category_id,
-    transactionDate:
-      new Date(row.transaction_date),
-    status:
-      row.status as ExpenseStatus,
-    source:
-      row.source as ExpenseSource,
+    transactionDate: new Date(row.transaction_date),
+    status: row.status as ExpenseStatus,
+    source: row.source as ExpenseSource,
     recurringId: row.recurring_id ?? null,
-    createdAt:
-      new Date(row.created_at),
+    createdAt: new Date(row.created_at),
   };
 }
 
-export function ExpensesProvider({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+function expenseRow(expense: Expense, userId: string) {
+  return {
+    id: expense.id,
+    user_id: userId,
+    category_id: expense.categoryId,
+    description: expense.description,
+    amount: expense.amount,
+    currency: expense.currency,
+    transaction_date: expense.transactionDate.toISOString(),
+    status: expense.status,
+    source: expense.source,
+    recurring_id: expense.recurringId,
+    created_at: expense.createdAt.toISOString(),
+  };
+}
+
+export function ExpensesProvider({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
-  const {
-    inputCurrency,
-    displayCurrency,
-    convertAmount,
-    refreshRates,
-  } = useAppSettings();
+  const { status } = useConnectivity();
+  const { syncVersion } = useOfflineSync();
+  const { inputCurrency, displayCurrency, convertAmount, refreshRates } = useAppSettings();
+  const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [hydrated, setHydrated] = useState(false);
+  const hydratedUserIdRef = useRef<string | null>(null);
 
-  const [expenses, setExpenses] =
-    useState<Expense[]>([]);
-
-  const [loading, setLoading] =
-    useState(false);
-
-  useEffect(() => {
+  const loadExpenses = useCallback(async () => {
     if (!user) {
       setExpenses([]);
+      hydratedUserIdRef.current = null;
+      setHydrated(true);
       return;
     }
-
-    void loadExpenses();
-  }, [user?.id]);
-
-  useEffect(() => {
-    const currencies = Array.from(
-      new Set(expenses.map((expense) => expense.currency))
-    );
-    if (currencies.length > 0) {
-      void refreshRates(currencies);
-    }
-  }, [displayCurrency, expenses]);
-
-  async function loadExpenses() {
-    if (!user) {
-      return;
-    }
-
+    setLoading(true);
+    let hasCache = false;
     try {
-      setLoading(true);
-
-      const {
-        data,
-        error,
-      } = await supabase
+      const cached = await readOfflineCache<any>(user.id, 'expenses');
+      if (cached) {
+        setExpenses(cached.map(mapExpense));
+        hydratedUserIdRef.current = user.id;
+        setHydrated(true);
+        hasCache = true;
+      }
+      if (status !== 'online') return;
+      const { data, error } = await supabase
         .from('expenses')
         .select('*')
         .eq('user_id', user.id)
-        .order(
-          'transaction_date',
-          {
-            ascending: false,
-          }
-        );
-
-      if (error) {
-        throw error;
-      }
-
-      setExpenses(
-        (data ?? []).map(
-          mapExpense
-        )
-      );
+        .order('transaction_date', { ascending: false });
+      if (error) throw error;
+      const rows = data ?? [];
+      setExpenses(rows.map(mapExpense));
+      hydratedUserIdRef.current = user.id;
+      await writeOfflineCache(user.id, 'expenses', rows);
     } catch (error) {
-      console.error(
-        'Error loading expenses:',
-        error
-      );
+      if (!hasCache) console.warn('No se pudieron cargar los gastos:', error);
     } finally {
+      if (hasCache || status !== 'checking') {
+        hydratedUserIdRef.current = user.id;
+        setHydrated(true);
+      }
       setLoading(false);
     }
-  }
+  }, [status, syncVersion, user?.id]);
 
-  const refreshExpenses = useCallback(loadExpenses, [user?.id]);
+  useEffect(() => {
+    hydratedUserIdRef.current = null;
+    setHydrated(false);
+    setExpenses([]);
+  }, [user?.id]);
+
+  useEffect(() => {
+    void loadExpenses();
+  }, [loadExpenses]);
+
+  useEffect(() => {
+    if (!user || !hydrated || hydratedUserIdRef.current !== user.id) return;
+    void writeOfflineCache(user.id, 'expenses', expenses.map((item) => expenseRow(item, user.id)));
+  }, [expenses, hydrated, user?.id]);
+
+  useEffect(() => {
+    const currencies = Array.from(new Set(expenses.map((expense) => expense.currency)));
+    if (currencies.length > 0) void refreshRates(currencies);
+  }, [displayCurrency, expenses]);
 
   async function addExpense({
     description,
@@ -179,184 +159,117 @@ export function ExpensesProvider({
     currency = inputCurrency,
     categoryId,
     transactionDate = new Date(),
-    status = 'completed',
+    status: expenseStatus = 'completed',
     source = 'manual',
   }: ExpenseInput) {
-    if (!user) {
-      throw new Error(
-        'User is not authenticated'
-      );
+    if (!user) throw new Error('User is not authenticated');
+    const local: Expense = {
+      id: createOfflineId(), description: description.trim(), amount, currency, categoryId,
+      transactionDate, status: expenseStatus, source, recurringId: null, createdAt: new Date(),
+    };
+    const payload = expenseRow(local, user.id);
+    setExpenses((current) => [local, ...current]);
+    if (status === 'online') {
+      const { data, error } = await supabase.from('expenses').upsert(payload).select().single();
+      if (!error) {
+        setExpenses((current) => current.map((item) => item.id === local.id ? mapExpense(data) : item));
+        return;
+      }
+      if (!isRetryableSyncError(error)) {
+        setExpenses((current) => current.filter((item) => item.id !== local.id));
+        throw error;
+      }
     }
-
-    const {
-      data,
-      error,
-    } = await supabase
-      .from('expenses')
-      .insert({
-        user_id: user.id,
-        category_id: categoryId,
-        description:
-          description.trim(),
-        amount,
-        currency,
-        transaction_date:
-          transactionDate.toISOString(),
-        status,
-        source,
-      })
-      .select()
-      .single();
-
-    if (error) {
+    try {
+      await queueOfflineUpsert(user.id, 'expenses', local.id, payload, true);
+    } catch (error) {
+      setExpenses((current) => current.filter((item) => item.id !== local.id));
       throw error;
     }
-
-    setExpenses(
-      (current) => [
-        mapExpense(data),
-        ...current,
-      ]
-    );
   }
 
-  async function updateExpense(
-    id: string,
-    {
-      description,
-      amount,
-      currency = inputCurrency,
-      categoryId,
-      transactionDate = new Date(),
-      status = 'completed',
-      source = 'manual',
-    }: ExpenseInput
-  ) {
-    if (!user) {
-      throw new Error(
-        'User is not authenticated'
-      );
+  async function updateExpense(id: string, {
+    description,
+    amount,
+    currency = inputCurrency,
+    categoryId,
+    transactionDate = new Date(),
+    status: expenseStatus = 'completed',
+    source = 'manual',
+  }: ExpenseInput) {
+    if (!user) throw new Error('User is not authenticated');
+    const existing = expenses.find((item) => item.id === id);
+    if (!existing) return;
+    const updated: Expense = {
+      ...existing, description: description.trim(), amount, currency, categoryId,
+      transactionDate, status: expenseStatus, source,
+    };
+    const payload = expenseRow(updated, user.id);
+    setExpenses((current) => current.map((item) => item.id === id ? updated : item)
+      .sort((a, b) => b.transactionDate.getTime() - a.transactionDate.getTime()));
+    if (status === 'online') {
+      const { data, error } = await supabase.from('expenses').upsert(payload).select().single();
+      if (!error) {
+        setExpenses((current) => current.map((item) => item.id === id ? mapExpense(data) : item)
+          .sort((a, b) => b.transactionDate.getTime() - a.transactionDate.getTime()));
+        return;
+      }
+      if (!isRetryableSyncError(error)) {
+        setExpenses((current) => current.map((item) => item.id === id ? existing : item)
+          .sort((a, b) => b.transactionDate.getTime() - a.transactionDate.getTime()));
+        throw error;
+      }
     }
-
-    const {
-      data,
-      error,
-    } = await supabase
-      .from('expenses')
-      .update({
-        category_id: categoryId,
-        description:
-          description.trim(),
-        amount,
-        currency,
-        transaction_date:
-          transactionDate.toISOString(),
-        status,
-        source,
-      })
-      .eq('id', id)
-      .eq('user_id', user.id)
-      .select()
-      .single();
-
-    if (error) {
+    try {
+      await queueOfflineUpsert(user.id, 'expenses', id, payload);
+    } catch (error) {
+      setExpenses((current) => current.map((item) => item.id === id ? existing : item)
+        .sort((a, b) => b.transactionDate.getTime() - a.transactionDate.getTime()));
       throw error;
     }
-
-    setExpenses(
-      (current) =>
-        current
-          .map((expense) =>
-            expense.id === id
-              ? mapExpense(data)
-              : expense
-          )
-          .sort(
-            (a, b) =>
-              b.transactionDate.getTime() -
-              a.transactionDate.getTime()
-          )
-    );
   }
 
-  async function deleteExpense(
-    id: string
-  ) {
-    if (!user) {
-      throw new Error(
-        'User is not authenticated'
-      );
+  async function deleteExpense(id: string) {
+    if (!user) throw new Error('User is not authenticated');
+    const existing = expenses.find((item) => item.id === id);
+    setExpenses((current) => current.filter((item) => item.id !== id));
+    if (status === 'online') {
+      const { error } = await supabase.from('expenses').delete().eq('id', id).eq('user_id', user.id);
+      if (!error) return;
+      if (!isRetryableSyncError(error)) {
+        if (existing) setExpenses((current) => [...current, existing]
+          .sort((a, b) => b.transactionDate.getTime() - a.transactionDate.getTime()));
+        throw error;
+      }
     }
-
-    const { error } =
-      await supabase
-        .from('expenses')
-        .delete()
-        .eq('id', id)
-        .eq('user_id', user.id);
-
-    if (error) {
+    try {
+      await queueOfflineDelete(user.id, 'expenses', id);
+    } catch (error) {
+      if (existing) setExpenses((current) => [...current, existing]
+        .sort((a, b) => b.transactionDate.getTime() - a.transactionDate.getTime()));
       throw error;
     }
-
-    setExpenses(
-      (current) =>
-        current.filter(
-          (expense) =>
-            expense.id !== id
-        )
-    );
   }
 
-  const total =
-    useMemo(
-      () =>
-        expenses
-          .filter(
-            (expense) =>
-              expense.status ===
-              'completed'
-          )
-          .reduce(
-            (sum, expense) =>
-              sum +
-              convertAmount(
-                expense.amount,
-                expense.currency
-              ),
-            0
-          ),
-      [convertAmount, expenses]
-    );
+  const total = useMemo(
+    () => expenses
+      .filter((expense) => expense.status === 'completed')
+      .reduce((sum, expense) => sum + convertAmount(expense.amount, expense.currency), 0),
+    [convertAmount, expenses]
+  );
 
   return (
-    <ExpensesContext.Provider
-      value={{
-        expenses,
-        loading,
-        addExpense,
-        updateExpense,
-        deleteExpense,
-        refreshExpenses,
-        total,
-      }}
-    >
+    <ExpensesContext.Provider value={{
+      expenses, loading, hydrated, addExpense, updateExpense, deleteExpense,
+      refreshExpenses: loadExpenses, total,
+    }}>
       {children}
     </ExpensesContext.Provider>
   );
 }
 
 export function useExpenses() {
-  const context =
-    useContext(
-      ExpensesContext
-    );
-
-  if (!context) {
-    throw new Error(
-      'useExpenses must be used inside ExpensesProvider'
-    );
-  }
-
+  const context = useContext(ExpensesContext);
+  if (!context) throw new Error('useExpenses must be used inside ExpensesProvider');
   return context;
 }
