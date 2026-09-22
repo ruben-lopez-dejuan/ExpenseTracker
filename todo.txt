@@ -1,326 +1,119 @@
 ExpenseTracker - TODO
 
-HECHO
+Leyenda: [x] implementado  [ ] pendiente
 
-[x] Autenticación con Supabase
-[x] Persistencia de sesión
-[x] Categorías persistentes en Supabase
-[x] Gastos persistentes en Supabase
-[x] Gastos futuros / previstos
-[x] Edición y borrado de gastos
-[x] Resumen por día / semana / mes / año / personalizado
-[x] Gráfico donut por categorías
-[x] Drill-down desde resumen
-[x] Colores e iconos personalizados por categoría
-[x] Selector visual de categorías en Añadir gasto
-[x] Buscador de categorías por nombre + descripción
-[x] Top-3 de categorías sugeridas
-[x] Sugerencias automáticas con debounce
-[x] Arquitectura classifyCategories()
-[x] Fallback heurístico
-[x] Detección Expo Go / development build
-[x] Indicador Heurística / E5 local
-[x] Benchmark E5-small fuera de la app
-[x] Infraestructura inicial E5 / ONNX
-[x] Caché preparada para categorías dinámicas y editables
-[x] Development build preparado vía EAS, sin Android Studio
-[x] E5-small validado en development build Android
-[x] Añadir gasto rediseñado para entrada manual rápida
-[x] Selector de categorías reutilizable
-[x] Editor de gasto compartido entre Resumen y Gastos
-[x] Avisos flotantes modernos para guardar, editar y borrar
-[x] Pantalla Movimientos con selector Gastos / Ingresos
-[x] Búsqueda y navegación temporal de ingresos
-[x] Edición y borrado de ingresos
-[x] Vista completa de próximos movimientos en Planificación
-[x] Cerrar sesión trasladado a Ajustes
+PRIORIDAD ACTUAL (EN ESTE ORDEN)
 
-CORTO PLAZO
+[ ] Cerrar la verificación por correo y la recuperación de contraseña
+    [x] Registro con enlace de confirmación y ruta de retorno en la app
+    [x] Solicitud de recuperación y formulario de nueva contraseña
+    [ ] Activar Confirm email y autorizar expensetracker://auth-callback en el panel de autenticación
+    [ ] Probar registro, enlace caducado y restablecimiento en una build de desarrollo o APK nueva
+    [ ] Comprobar el flujo con la app cerrada y con la app en segundo plano en una APK preview
 
-[ ] Terminar E5-small real en Android
-    [x] Probar el development APK
-    [x] Comprobar tokenizer
-    [x] Comprobar inferencia ONNX
-    [x] Verificar Top-3 real
-    [ ] Medir primera carga
-    [ ] Medir inferencias posteriores
-    [ ] Comprobar caché
-    [ ] Comprobar crear / editar / borrar categorías
-    [ ] Asegurar fallback si E5 falla
+[ ] Exportación y copia de seguridad
+    [ ] Exportar gastos e ingresos a CSV legible
+    [ ] Exportar una copia completa de movimientos, categorías, presupuestos y recurrentes
+    [ ] Restaurar una copia con vista previa y control de duplicados
+    [ ] Compartir o guardar los archivos desde Android
 
-[x] Entrada manual compacta
-    [x] Eliminar la entrada escrita en lenguaje natural
-    [x] Concepto e importe en la misma fila
-    [x] Enter desde concepto lleva al importe
-    [x] Selector Hoy / Ayer / Otro día con estado activo
-    [x] Futuro -> gasto previsto
-    [x] Sugerencias E5 a partir del concepto
-    [x] Guardado fijo al seleccionar categoría
-    [x] Preview editable antes de guardar
+[ ] Sincronización offline fiable y visible
+    [x] Leer datos guardados sin conexión y encolar cambios
+    [x] Reintentar al recuperar la conexión o volver a la app
+    [ ] Mostrar qué cambios siguen pendientes y cuáles fallaron
+    [ ] Permitir reintentar manualmente y resolver errores permanentes
+    [ ] Probar reinicio, cambio de cuenta, ediciones simultáneas y conflictos
+    [ ] Verificar que los movimientos previstos se ejecutan correctamente tras volver a estar online
 
-[ ] CategoryPicker reutilizable
-    [x] Sacar el listado y la búsqueda fuera de add-expense-screen.tsx
-    [x] Selector modal compartido para Añadir y Editar
-    [x] Buscador compartido
-    [ ] Top-3 compartido
-    [x] Iconos/colores compartidos
+[ ] Avisos opcionales
+    [ ] Avisar al llegar al 80 % y al 100 % de un presupuesto
+    [ ] Avisar de gastos anormalmente altos, con umbral configurable
+    [ ] Recordar pagos e ingresos próximos, incluidas recurrencias
+    [ ] Reprogramar o cancelar avisos al editar, pausar o borrar movimientos
+    [ ] Permitir activar/desactivar cada tipo desde Ajustes
 
-[ ] Modernizar Editar gasto
-    [x] Dejar de mostrar el selector antiguo
-    [x] Mostrar categoría actual como fila compacta
-    [x] Icono + color + nombre
-    [x] Pulsar para abrir selector/modal
-    [x] Buscador dentro
-    [ ] Sugerencias de categoría al editar concepto
-    [x] Usar el mismo editor en Resumen y Gastos
-    [x] Mantener UX rápida
+[ ] Objetivos de ahorro
+    [ ] Meta, fecha objetivo y progreso
+    [ ] Evolución del ahorro por mes
+    [ ] Relación con el balance y los presupuestos existentes
 
-[ ] Pulir Añadir gasto
-    [x] Mejorar jerarquía visual
-    [x] Concepto + importe más claros
-    [x] Sugeridas mejor integradas
-    [x] Sustituir la lista larga por un selector modal
-    [x] Estados de loading
-    [x] Mejorar foco de teclado
-    [ ] Transiciones suaves
-    [x] Feedback al seleccionar
-    [x] Mejor manejo de errores
+IMPLEMENTADO
 
-GASTOS
+[x] Acceso con email y contraseña y sesión persistente
+[x] Categorías y gastos persistentes; crear, editar, buscar y borrar
+[x] Clasificación local del concepto, sugerencias y fallback básico
+[x] Añadir gasto compacto con concepto e importe, fecha Hoy/Ayer/Otro día y preview editable
+[x] Selector de categorías compartido y buscador por nombre y descripción
+[x] Gastos e ingresos previstos; ejecución automática o manual configurable
+[x] Ingresos, balance mensual y porcentaje de ahorro
+[x] Recurrentes semanales, mensuales y anuales; editar, pausar y borrar
+[x] Proyección de recurrentes y lista de próximos movimientos en Planificación
+[x] Presupuestos globales y por categoría; crear, editar, borrar y ver progreso
+[x] Resumen por día, semana, mes, año y periodo personalizado; selección de fecha y detalle
+[x] Gráfico por categorías y acceso al editor de movimientos desde Resumen
+[x] Pantalla Movimientos con gastos/ingresos, búsqueda, filtros, orden y salto temporal
+[x] Edición compartida de gastos e ingresos; borrado rápido con swipe y vibración
+[x] Divisa de cada movimiento, divisa mostrada y conversión actualizada con caché
+[x] Temas claro/oscuro e idiomas español, inglés y francés
+[x] Pantalla de carga, caché local y cola de sincronización offline
+[x] Ajustes accesibles desde las pantallas principales y cierre de sesión en Ajustes
+[x] Icono, splash y perfiles de build de desarrollo y APK preview
 
-[x] Buscador de gastos
-    [x] Buscar por descripción
-    [x] Buscar por categoría
-    [x] Buscar por importe
+MEJORAS DE FUNCIONALIDAD
 
-[x] Filtros de gastos
-    [x] Categoría
-    [x] Periodo
-    [x] Completado / previsto
-    [x] Origen manual / texto / voz / recurrente
-    [x] Rango de importe
+[ ] Categorías
+    [ ] Favoritos, orden personalizado y categorías archivadas
+    [ ] Mostrar categorías más utilizadas y contador de movimientos
+    [ ] Compartir las tres sugerencias principales con el editor de gastos
+    [ ] Sugerir categoría al cambiar el concepto de un gasto existente
+    [ ] Aprender de correcciones del usuario y del historial local
+    [ ] Añadir ejemplos o sinónimos opcionales para mejorar sugerencias
 
-[x] Orden de gastos
-    [x] Más reciente
-    [x] Más antiguo
-    [x] Mayor importe
-    [x] Menor importe
+[ ] Análisis
+    [ ] Comparar con el periodo anterior, el mes anterior y el año anterior
+    [ ] Variación porcentual y categorías que más subieron
+    [ ] Evolución diaria, semanal y mensual con gráficos
+    [ ] Gasto medio diario, días de mayor gasto y gastos inusuales
+    [ ] Detalle de categoría con evolución, promedio y últimos movimientos
+    [ ] Balance anual y evolución del ahorro
 
-[x] Navegación temporal
-    [x] Saltar a mes
-    [x] Filtros rápidos
-    [x] Hoy / esta semana / este mes
-
-CATEGORÍAS
-
-[ ] Mejorar gestión de categorías
-    [ ] Favoritos
-    [ ] Orden personalizado
-    [ ] Categorías archivadas
-    [ ] Categorías más utilizadas
-    [ ] Búsqueda en la pestaña Categorías
-    [ ] Contador de gastos por categoría
-
-[ ] Mejorar descripciones para IA
-    [ ] Ayudar al usuario a escribir buenas descripciones
-    [ ] Ejemplos
-    [ ] Sinónimos
-    [ ] Sugerir descripción automáticamente
-
-[ ] Aprendizaje personal
-    [ ] Recordar correcciones del usuario
-    [ ] Ejemplo: Mercadona -> Compra
-    [ ] Ejemplo: Netflix -> Suscripciones
-    [ ] Ejemplo: GAN -> Speedcubing
-    [ ] Usar historial local como señal adicional a E5
-
-RESUMEN / ANALÍTICA
-
-[ ] Comparaciones
-    [ ] Vs periodo anterior
-    [ ] Mes anterior
-    [ ] Año anterior
-    [ ] Variación %
-    [ ] Categorías que más subieron
-
-[ ] Evolución temporal
-    [ ] Gasto diario
-    [ ] Gasto semanal
-    [ ] Gasto mensual
-    [ ] Gráficos de líneas/barras
-
-[ ] Insights
-    [ ] Categoría principal
-    [ ] Gasto medio diario
-    [ ] Días con más gasto
-    [ ] Tendencia
-    [ ] Gastos inusuales
-
-[ ] Detalle de categoría
-    [ ] Evolución
-    [ ] Promedio
-    [ ] Últimos movimientos
-    [ ] Comparación con periodo previo
-
-INGRESOS / FINANZAS GENERALES
-
-[ ] Ingresos
-    [x] Añadir ingresos
+[ ] Ingresos y suscripciones
     [ ] Categorías de ingresos
-    [x] Ingresos recurrentes
-    [ ] Importar datos históricos
+    [ ] Importación de datos históricos desde CSV o Excel
+    [ ] Vista de suscripciones con coste mensual y anual equivalente
+    [ ] Próxima renovación y acceso rápido a la recurrencia
 
-[ ] Balance
-    [x] Ingresos - gastos
-    [x] Balance mensual
-    [ ] Balance anual
-    [x] Ahorro
+[ ] Entrada por voz (más adelante)
+    [ ] Dictado a texto
+    [ ] Clasificar el concepto con el motor local
+    [ ] Mostrar un preview editable antes de guardar
 
-[ ] Ahorro
-    [x] Porcentaje de ahorro
-    [ ] Evolución
-    [ ] Objetivos
+[ ] Ajustes y experiencia
+    [ ] Periodo inicial y primer día de la semana configurables
+    [ ] Transiciones suaves en sugerencias, guardado, modales y cambio de periodo
+    [ ] Completar vibración en guardar, seleccionar categoría y errores
+    [ ] Revisar estados vacíos y primer uso
+    [ ] Onboarding breve sobre movimientos, planificación, privacidad y sugerencias
+    [ ] Configuración del motor local y descarga o eliminación del modelo
 
-RECURRENTES
+CALIDAD, PRIVACIDAD Y DISTRIBUCIÓN
 
-[ ] Gastos recurrentes
-    [x] Mensual / semanal / anual
-    [x] Próxima ejecución
-    [x] Crear gastos previstos
-    [x] Editar una serie
-    [x] Pausar
-    [x] Eliminar
+[ ] Revisar permisos de datos, índices, restricciones y copias del backend
+[ ] Permitir cambiar la contraseña desde Ajustes y cerrar otras sesiones
+[ ] Explicar claramente qué se procesa en el dispositivo y qué se sincroniza
+[ ] Redactar y publicar la política de privacidad
+[ ] Medir primera carga, inferencias posteriores y caché del motor local
+[ ] Comprobar sugerencias al crear, editar y borrar categorías y el fallback ante fallos
+[ ] Medir tamaño del modelo y valorar descarga bajo demanda, checksum y versionado
+[ ] Probar APK preview estable sin Metro; revisar icono, splash y versión final
+[ ] Preparar AAB, ficha y publicación en Play Store
+[ ] Evaluar iOS más adelante: build, permisos y compatibilidad del motor local
 
-[ ] Suscripciones
-    [ ] Vista específica
-    [ ] Coste mensual equivalente
-    [ ] Coste anual
-    [ ] Próxima renovación
+IDEAS PARA DESPUÉS
 
-VOZ
-
-[ ] Entrada por voz
-    [ ] Speech-to-text
-    [ ] Reutilizar pipeline de lenguaje natural
-    [ ] Voz -> texto -> parser + E5
-    [ ] Preview antes de guardar
-
-PRESUPUESTOS
-
-[ ] Presupuesto mensual
-    [x] Global
-    [x] Por categoría
-    [x] Progreso
-
-[ ] Avisos
-    [ ] 80 % del presupuesto
-    [ ] Presupuesto agotado
-    [ ] Gasto anormalmente alto
-
-UX / PRODUCTO
-
-[x] Navegación de planificación
-    [x] Ajustes en la cabecera de Resumen
-    [x] Planificación en la barra inferior
-    [x] Botón central para elegir gasto o ingreso
-    [x] Gastos previstos ocultos por defecto
-    [x] Sección Próximos separada en Movimientos
-
-[ ] Ajustes
-    [x] Moneda de entrada
-    [x] Divisa seleccionable en cada gasto
-    [x] Moneda mostrada
-    [x] Conversión actualizada y caché sin conexión
-    [ ] Periodo por defecto
-    [ ] Primer día de semana
-    [x] Apariencia claro / oscuro
-    [ ] Configuración IA local
-    [ ] Descargar/eliminar modelo en el futuro
-
-[x] Tema oscuro
-    [x] Adaptar correctamente todos los componentes
-
-[ ] Haptics
-    [ ] Guardar
-    [ ] Seleccionar categoría
-    [ ] Borrar
-    [ ] Error
-
-[ ] Animaciones
-    [ ] Sugerencias
-    [ ] Guardado
-    [ ] Modal de categorías
-    [ ] Cambios de periodo
-
-[ ] Estados vacíos
-    [ ] Sin movimientos
-    [ ] Sin categorías
-    [ ] Sin resultados
-    [ ] Sin gastos en periodo
-
-[ ] Onboarding
-    [ ] Explicar qué hace la app
-    [ ] Crear categorías
-    [ ] Explicar lenguaje natural
-    [ ] Explicar privacidad / modelo local
-
-SEGURIDAD / PRODUCCIÓN
-
-[ ] Auth completa
-    [ ] Reactivar confirmación de email
-    [ ] Deep links
-    [ ] Recuperar contraseña
-    [ ] Cambiar contraseña
-    [ ] Cerrar otras sesiones
-
-[ ] Revisión Supabase
-    [ ] RLS
-    [ ] Índices
-    [ ] Constraints
-    [ ] Políticas
-    [ ] Backups
-
-[ ] Privacidad
-    [ ] Explicar que la clasificación E5 es local
-    [ ] Explicar qué datos se sincronizan con Supabase
-    [ ] Política de privacidad
-
-DISTRIBUCIÓN
-
-[ ] Optimizar modelo
-    [ ] Medir tamaño real
-    [ ] Valorar descargarlo bajo demanda
-    [ ] Checksum / versionado
-    [ ] Actualización de modelo
-
-[ ] Android producción
-    [ ] Icono
-    [ ] Splash
-    [ ] Package
-    [ ] Versión
-    [ ] AAB
-    [ ] Play Store
-
-[ ] iOS
-    [ ] Comprobar ONNX
-    [ ] Comprobar E5
-    [ ] Permisos
-    [ ] EAS iOS
-    [ ] App Store
-
-MÁS ADELANTE
-
-[ ] Importar/exportar CSV/Excel
-[ ] Backup/exportación de datos
-[ ] Multi-moneda
 [ ] Gastos compartidos
-[ ] Etiquetas además de categorías
-[ ] Notas
-[ ] Adjuntar ticket/foto
-[ ] OCR de tickets
-[ ] Localización/comercio opcional
-[ ] Widget Android/iOS
-[ ] Atajos para añadir gasto
-[ ] Notificaciones
+[ ] Etiquetas y notas adicionales
+[ ] Adjuntar foto o ticket y reconocer importes del ticket
+[ ] Comercio o ubicación opcional
+[ ] Widget y atajos para añadir movimientos
 [ ] Detección de duplicados
-[ ] Panel de estadísticas avanzado
