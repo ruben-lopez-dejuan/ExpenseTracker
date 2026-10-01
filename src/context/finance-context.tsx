@@ -25,7 +25,10 @@ import {
 } from '../lib/offline-storage';
 import { parseLocalDateOnly, toLocalDateOnly } from '../lib/date-only';
 import { supabase } from '../lib/supabase';
-import { advanceRecurringDate } from '../lib/recurring-dates';
+import {
+  collectDueRecurringDates,
+  RecurringCatchUpLimitError,
+} from '../lib/recurring-dates';
 
 export type IncomeStatus = 'completed' | 'planned';
 export type RecurringKind = 'expense' | 'income';
@@ -163,13 +166,6 @@ function isMissingPlanningSchema(error: any) {
   return error?.code === '42P01' || error?.code === 'PGRST205';
 }
 
-function isStaleRecurringReference(error: any) {
-  return (
-    error?.code === '23503' &&
-    String(error?.message ?? '').includes('recurring_id')
-  );
-}
-
 export function FinanceProvider({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
   const { status: connectivityStatus } = useConnectivity();
@@ -197,108 +193,91 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
       let incomesChanged = false;
 
       for (const rule of rules.filter((item) => item.active)) {
+        if (rule.kind === 'expense' && !rule.categoryId) {
+          throw new Error(`Recurring expense ${rule.id} has no category`);
+        }
         const targetTable = rule.kind === 'expense' ? 'expenses' : 'incomes';
-        const { data: pending, error: pendingError } = await supabase
+        const { data: existingRows, error: existingError } = await supabase
           .from(targetTable)
-          .select('id, transaction_date')
+          .select('id, transaction_date, status')
           .eq('recurring_id', rule.id)
-          .eq('status', 'planned')
-          .limit(1);
-        if (pendingError) throw pendingError;
-        const pendingOccurrence = pending?.[0];
-        let occurrenceDate = new Date(rule.nextRunDate);
-        if (pendingOccurrence) {
-          const pendingDate = new Date(pendingOccurrence.transaction_date);
-          if (pendingDate.getTime() > today.getTime()) {
-            if (toLocalDateOnly(pendingDate) !== toLocalDateOnly(rule.nextRunDate)) {
-              const { error: alignError } = await supabase
-                .from('recurring_transactions')
-                .update({ next_run_date: toLocalDateOnly(pendingDate) })
-                .eq('id', rule.id)
+          .order('transaction_date');
+        if (existingError) throw existingError;
+
+        const existingByDate = new Map(
+          (existingRows ?? []).map((row) => [
+            toLocalDateOnly(new Date(row.transaction_date)),
+            row,
+          ])
+        );
+        const { dates: dueDates, nextDate } = collectDueRecurringDates(
+          rule.nextRunDate,
+          rule.frequency,
+          today
+        );
+
+        for (const occurrenceDate of dueDates) {
+          const key = toLocalDateOnly(occurrenceDate);
+          const existing = existingByDate.get(key);
+          if (existing) {
+            if (plannedExecutionMode === 'automatic' && existing.status === 'planned') {
+              const { error: completeError } = await supabase
+                .from(targetTable)
+                .update({ status: 'completed' })
+                .eq('id', existing.id)
                 .eq('user_id', user.id);
-              if (alignError) throw alignError;
+              if (completeError) throw completeError;
+              if (rule.kind === 'expense') expensesChanged = true;
+              else incomesChanged = true;
             }
             continue;
           }
-          if (plannedExecutionMode === 'manual') {
-            continue;
-          }
-          const { error: completeError } = await supabase
-            .from(targetTable)
-            .update({ status: 'completed' })
-            .eq('id', pendingOccurrence.id)
-            .eq('user_id', user.id);
-          if (completeError) throw completeError;
-          if (rule.kind === 'expense') expensesChanged = true;
-          else incomesChanged = true;
 
-          occurrenceDate = rule.nextRunDate.getTime() > pendingDate.getTime()
-            ? new Date(rule.nextRunDate)
-            : advanceRecurringDate(pendingDate, rule.frequency);
-          while (occurrenceDate.getTime() <= today.getTime()) {
-            occurrenceDate = advanceRecurringDate(occurrenceDate, rule.frequency);
-          }
-
-          const { error: advanceError } = await supabase
-            .from('recurring_transactions')
-            .update({ next_run_date: toLocalDateOnly(occurrenceDate) })
-            .eq('id', rule.id)
-            .eq('user_id', user.id);
-          if (advanceError) throw advanceError;
-        } else if (
-          plannedExecutionMode === 'automatic' &&
-          occurrenceDate.getTime() <= today.getTime()
-        ) {
-          const completed = {
+          const occurrence = {
             user_id: user.id,
             description: rule.description.trim(),
             amount: rule.amount,
             currency: rule.currency,
             transaction_date: occurrenceDate.toISOString(),
-            status: 'completed',
+            status: plannedExecutionMode === 'automatic' ? 'completed' : 'planned',
             source: 'recurring',
             recurring_id: rule.id,
           };
           if (rule.kind === 'expense' && rule.categoryId) {
             const { error } = await supabase
               .from('expenses')
-              .insert({ ...completed, category_id: rule.categoryId });
-            if (error) {
-              if (isStaleRecurringReference(error)) continue;
-              if (error.code !== '23505') throw error;
-            } else {
+              .insert({ ...occurrence, category_id: rule.categoryId });
+            if (error?.code !== '23505') {
+              if (error) throw error;
               expensesChanged = true;
             }
           } else if (rule.kind === 'income') {
-            const { error } = await supabase.from('incomes').insert(completed);
-            if (error) {
-              if (isStaleRecurringReference(error)) continue;
-              if (error.code !== '23505') throw error;
-            } else {
+            const { error } = await supabase.from('incomes').insert(occurrence);
+            if (error?.code !== '23505') {
+              if (error) throw error;
               incomesChanged = true;
             }
           }
+        }
 
-          do {
-            occurrenceDate = advanceRecurringDate(occurrenceDate, rule.frequency);
-          } while (occurrenceDate.getTime() <= today.getTime());
-
+        if (toLocalDateOnly(nextDate) !== toLocalDateOnly(rule.nextRunDate)) {
           const { error: advanceError } = await supabase
             .from('recurring_transactions')
-            .update({ next_run_date: toLocalDateOnly(occurrenceDate) })
+            .update({ next_run_date: toLocalDateOnly(nextDate) })
             .eq('id', rule.id)
             .eq('user_id', user.id);
           if (advanceError) throw advanceError;
         }
 
-        if (occurrenceDate.getTime() > horizon.getTime()) continue;
+        if (nextDate.getTime() > horizon.getTime()) continue;
+        if (existingByDate.has(toLocalDateOnly(nextDate))) continue;
 
         const common = {
           user_id: user.id,
           description: rule.description.trim(),
           amount: rule.amount,
           currency: rule.currency,
-          transaction_date: occurrenceDate.toISOString(),
+          transaction_date: nextDate.toISOString(),
           status: 'planned',
           source: 'recurring',
           recurring_id: rule.id,
@@ -308,20 +287,16 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
           const { error } = await supabase
             .from('expenses')
             .insert({ ...common, category_id: rule.categoryId });
-          if (error) {
-            if (isStaleRecurringReference(error)) continue;
-            if (error.code !== '23505') throw error;
-          } else {
+          if (error?.code !== '23505') {
+            if (error) throw error;
             expensesChanged = true;
           }
         }
 
         if (rule.kind === 'income') {
           const { error } = await supabase.from('incomes').insert(common);
-          if (error) {
-            if (isStaleRecurringReference(error)) continue;
-            if (error.code !== '23505') throw error;
-          } else {
+          if (error?.code !== '23505') {
+            if (error) throw error;
             incomesChanged = true;
           }
         }
@@ -432,7 +407,11 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
         await writeOfflineCache(user.id, 'recurring_transactions', rulesRefreshed.data ?? []);
       }
     } catch (error) {
-      if (!hasCache) console.warn('No se pudieron cargar los datos de planificación:', error);
+      if (error instanceof RecurringCatchUpLimitError) {
+        console.error('La recurrencia requiere revisión y no se ha procesado:', error);
+      } else if (!hasCache) {
+        console.warn('No se pudieron cargar los datos de planificación:', error);
+      }
     } finally {
       refreshRunningRef.current = false;
       if (hasCache || connectivityStatus !== 'checking') {
@@ -624,14 +603,12 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
   async function completePlannedMovement(
     kind: RecurringKind,
     id: string,
-    recurringId?: string | null
+    _recurringId?: string | null
   ) {
     if (!user) throw new Error('User is not authenticated');
-    let movementDate = new Date();
     if (kind === 'expense') {
       const item = expenses.find((expense) => expense.id === id);
       if (!item) return;
-      movementDate = item.transactionDate;
       await updateExpense(id, {
         description: item.description, amount: item.amount, currency: item.currency,
         categoryId: item.categoryId, transactionDate: item.transactionDate,
@@ -640,26 +617,12 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
     } else {
       const item = incomes.find((income) => income.id === id);
       if (!item) return;
-      movementDate = item.transactionDate;
       await updateIncome(id, {
         description: item.description, amount: item.amount, currency: item.currency,
         transactionDate: item.transactionDate, status: 'completed', source: item.source,
       });
     }
 
-    if (recurringId) {
-      const rule = recurring.find((item) => item.id === recurringId);
-      if (rule) {
-        let nextDate = advanceRecurringDate(movementDate, rule.frequency);
-        const today = new Date();
-        today.setHours(23, 59, 59, 999);
-        while (nextDate.getTime() <= today.getTime()) nextDate = advanceRecurringDate(nextDate, rule.frequency);
-        const updated = { ...rule, nextRunDate: nextDate };
-        const data = await persistUpsert('recurring_transactions', recurringId, recurringRow(updated, user.id));
-        const saved = data ? mapRecurring(data) : updated;
-        setRecurring((current) => current.map((item) => item.id === recurringId ? saved : item));
-      }
-    }
     if (connectivityStatus === 'online') await refreshFinance();
   }
 

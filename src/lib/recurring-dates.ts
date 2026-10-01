@@ -1,5 +1,14 @@
 import type { RecurringFrequency } from '../context/finance-context';
 
+export const MAX_RECURRING_CATCH_UP = 500;
+
+export class RecurringCatchUpLimitError extends Error {
+  constructor(limit: number) {
+    super(`Recurring catch-up exceeded the safety limit of ${limit} occurrences`);
+    this.name = 'RecurringCatchUpLimitError';
+  }
+}
+
 export function advanceRecurringDate(date: Date, frequency: RecurringFrequency) {
   const next = new Date(date);
 
@@ -52,4 +61,26 @@ export function recurringDatesBetween(
   }
 
   return dates;
+}
+
+export function collectDueRecurringDates(
+  firstDate: Date,
+  frequency: RecurringFrequency,
+  throughDate: Date,
+  limit = MAX_RECURRING_CATCH_UP
+) {
+  const dates: Date[] = [];
+  let current = new Date(firstDate);
+
+  while (current.getTime() <= throughDate.getTime()) {
+    if (dates.length >= limit) throw new RecurringCatchUpLimitError(limit);
+    dates.push(new Date(current));
+    const next = advanceRecurringDate(current, frequency);
+    if (next.getTime() <= current.getTime()) {
+      throw new Error('Recurring date did not advance');
+    }
+    current = next;
+  }
+
+  return { dates, nextDate: current };
 }
