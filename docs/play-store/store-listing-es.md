@@ -39,9 +39,9 @@ Expense Tracker no se conecta a cuentas bancarias, no ejecuta pagos ni ofrece as
 
 Primera versión de Expense Tracker para testing cerrado. Incluye gastos e ingresos, presupuestos, planificación recurrente, soporte offline, varias divisas, temas e idiomas y categorización local opcional.
 
-## Material gráfico pendiente en Play Console
+## Material gráfico para Play Console
 
-- Icono de alta resolución: PNG de 512 × 512, sin máscara aplicada.
-- Imagen destacada: JPG o PNG de 1024 × 500.
+- Icono de alta resolución: `assets/play-store/icon-512.png` (512 × 512, PNG).
+- Imagen destacada: `assets/play-store/feature-graphic-1024x500.png` (1024 × 500, PNG sin transparencia).
 - Al menos dos capturas de teléfono. Recomendadas: Resumen, Añadir movimiento, Gastos, Planificación y Ajustes.
 
