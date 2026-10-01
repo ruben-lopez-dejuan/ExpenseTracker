@@ -173,7 +173,7 @@ export default function SettingsScreen({
             iconColor="#4F46E5"
             iconBackground="#EEF2FF"
             title={t('signedIn')}
-            value={user?.email ?? 'Cuenta de ExpenseTracker'}
+            value={user?.email ?? 'Cuenta de Expense Tracker'}
           />
           <View style={styles.divider} />
           <TouchableOpacity
@@ -526,7 +526,12 @@ function ThemeOption({
         size={21}
         color={selected ? '#4F46E5' : '#6B7280'}
       />
-      <Text style={[styles.themeText, selected && styles.themeTextSelected]}>
+      <Text
+        style={[styles.themeText, selected && styles.themeTextSelected]}
+        numberOfLines={1}
+        adjustsFontSizeToFit
+        minimumFontScale={0.85}
+      >
         {label}
       </Text>
       {selected && (

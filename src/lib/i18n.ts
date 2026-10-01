@@ -24,7 +24,7 @@ const messages = {
   es: {
     summary: 'Resumen', transactions: 'Movimientos', add: 'Añadir', planning: 'Planificación', categories: 'Categorías',
     day: 'Día', week: 'Semana', month: 'Mes', year: 'Año', custom: 'Personalizado', totalPeriod: 'Total del periodo', addExpense: 'Añadir gasto',
-    settings: 'Ajustes', settingsSubtitle: 'Tu cuenta y preferencias de ExpenseTracker.', account: 'Cuenta', signedIn: 'Sesión iniciada',
+    settings: 'Ajustes', settingsSubtitle: 'Tu cuenta y preferencias de Expense Tracker.', account: 'Cuenta', signedIn: 'Sesión iniciada',
     currencies: 'Divisas', inputCurrency: 'Moneda de entrada', displayedCurrency: 'Moneda mostrada', exchangeRate: 'Tipo de cambio', appearance: 'Apariencia', light: 'Claro', dark: 'Oscuro',
     language: 'Idioma', languageSubtitle: 'Idioma de la aplicación', systemLanguage: 'Sistema',
     plannedMovements: 'Movimientos previstos', automatic: 'Automático', manual: 'Manual', automaticDescription: 'Se marcan como realizados al abrir la aplicación en la fecha prevista.', manualDescription: 'Permanecen pendientes hasta que los confirmes.',
@@ -55,7 +55,7 @@ const messages = {
   en: {
     summary: 'Summary', transactions: 'Transactions', add: 'Add', planning: 'Planning', categories: 'Categories',
     day: 'Day', week: 'Week', month: 'Month', year: 'Year', custom: 'Custom', totalPeriod: 'Period total', addExpense: 'Add expense',
-    settings: 'Settings', settingsSubtitle: 'Your ExpenseTracker account and preferences.', account: 'Account', signedIn: 'Signed in',
+    settings: 'Settings', settingsSubtitle: 'Your Expense Tracker account and preferences.', account: 'Account', signedIn: 'Signed in',
     currencies: 'Currencies', inputCurrency: 'Entry currency', displayedCurrency: 'Display currency', exchangeRate: 'Exchange rate', appearance: 'Appearance', light: 'Light', dark: 'Dark',
     language: 'Language', languageSubtitle: 'Application language', systemLanguage: 'System',
     plannedMovements: 'Planned transactions', automatic: 'Automatic', manual: 'Manual', automaticDescription: 'They are marked as completed when you open the app on their due date.', manualDescription: 'They remain pending until you confirm them.',
@@ -86,7 +86,7 @@ const messages = {
   fr: {
     summary: 'Résumé', transactions: 'Mouvements', add: 'Ajouter', planning: 'Planification', categories: 'Catégories',
     day: 'Jour', week: 'Semaine', month: 'Mois', year: 'Année', custom: 'Personnalisé', totalPeriod: 'Total de la période', addExpense: 'Ajouter une dépense',
-    settings: 'Réglages', settingsSubtitle: 'Votre compte et vos préférences ExpenseTracker.', account: 'Compte', signedIn: 'Session ouverte',
+    settings: 'Réglages', settingsSubtitle: 'Votre compte et vos préférences Expense Tracker.', account: 'Compte', signedIn: 'Session ouverte',
     currencies: 'Devises', inputCurrency: 'Devise de saisie', displayedCurrency: 'Devise affichée', exchangeRate: 'Taux de change', appearance: 'Apparence', light: 'Clair', dark: 'Sombre',
     language: 'Langue', languageSubtitle: "Langue de l’application", systemLanguage: 'Système',
     plannedMovements: 'Mouvements prévus', automatic: 'Automatique', manual: 'Manuel', automaticDescription: "Ils sont marqués comme réalisés à l’ouverture de l’application le jour prévu.", manualDescription: "Ils restent en attente jusqu’à votre confirmation.",

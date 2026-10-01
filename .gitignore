@@ -43,5 +43,7 @@ example
 /android
 .env
 
-# E5 model downloaded on first run
-assets/models/e5-small/model_int8.onnx
+# Local tooling and backups
+supabase/.temp/
+.codex-*/
+*.bak-*

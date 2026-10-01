@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "ExpenseTracker",
+    "name": "Expense Tracker",
     "slug": "ExpenseTracker",
     "version": "1.1.0",
     "icon": "./assets/images/expense-tracker-app-icon.png",
@@ -22,7 +22,10 @@
         }
       ],
       "@react-native-community/datetimepicker",
-      "onnxruntime-react-native"
+      "onnxruntime-react-native",
+      "expo-image",
+      "expo-sqlite",
+      "expo-web-browser"
     ],
     "experiments": {
       "typedRoutes": true,
@@ -35,7 +38,12 @@
       }
     },
     "android": {
-      "package": "com.rulo1023.ExpenseTracker",
+      "package": "com.expensetracker.app",
+      "allowBackup": false,
+      "blockedPermissions": [
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE"
+      ],
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/expense-tracker-adaptive-foreground.png",
         "backgroundColor": "#4F46E5"

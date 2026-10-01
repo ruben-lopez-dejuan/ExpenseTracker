@@ -157,7 +157,7 @@ export default function AuthScreen() {
     : mode === 'confirm' ? t('verifyEmail')
     : mode === 'recover' || mode === 'recoverySent'
       ? t('resetPassword')
-      : 'ExpenseTracker';
+      : 'Expense Tracker';
 
   const description = mode === 'confirm' ? t('confirmationInstructions')
     : mode === 'recoverySent' ? t('recoveryInstructions')

@@ -18,7 +18,7 @@ export default function AppLoadingScreen() {
             contentFit="cover"
           />
         </View>
-        <Text style={styles.title}>ExpenseTracker</Text>
+        <Text style={styles.title}>Expense Tracker</Text>
         <Text style={styles.message}>{t('loadingData')}</Text>
         <ActivityIndicator size="small" color="#4F46E5" style={styles.indicator} />
       </View>
