@@ -22,6 +22,13 @@ type OfflineOperation = {
 
 const CACHE_PREFIX = 'expense-tracker.offline-cache.v1';
 const QUEUE_KEY = 'expense-tracker.offline-queue.v1';
+const OFFLINE_ENTITIES: OfflineEntity[] = [
+  'categories',
+  'expenses',
+  'incomes',
+  'budgets',
+  'recurring_transactions',
+];
 const listeners = new Set<() => void>();
 let queueMutationPromise: Promise<void> = Promise.resolve();
 let flushPromise: { userId: string; promise: Promise<SyncResult> } | null = null;
@@ -172,6 +179,16 @@ export function subscribeOfflineQueue(listener: () => void) {
   return () => {
     listeners.delete(listener);
   };
+}
+
+export async function clearOfflineUserData(userId: string) {
+  await withQueueLock(async () => {
+    const queue = await readQueue();
+    await Promise.all(
+      OFFLINE_ENTITIES.map((entity) => Storage.removeItem(cacheKey(userId, entity)))
+    );
+    await writeQueue(queue.filter((item) => item.userId !== userId));
+  });
 }
 
 async function performOperation(operation: OfflineOperation) {

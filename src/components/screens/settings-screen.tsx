@@ -3,9 +3,11 @@ import Constants from 'expo-constants';
 import { useState } from 'react';
 import {
   ActivityIndicator,
+  Modal,
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
@@ -23,6 +25,8 @@ import { useConnectivity } from '../../context/connectivity-context';
 import { E5Status, useE5Model } from '../../context/e5-model-context';
 import { useAppStyles } from '../../lib/themed-styles';
 import { LANGUAGE_OPTIONS, TranslationKey } from '../../lib/i18n';
+import { clearOfflineUserData } from '../../lib/offline-storage';
+import { supabase } from '../../lib/supabase';
 
 type SettingsScreenProps = {
   onClose?: () => void;
@@ -84,6 +88,9 @@ export default function SettingsScreen({
     getRate,
   } = useAppSettings();
   const [signingOut, setSigningOut] = useState(false);
+  const [deleteVisible, setDeleteVisible] = useState(false);
+  const [deleteConfirmation, setDeleteConfirmation] = useState('');
+  const [deletingAccount, setDeletingAccount] = useState(false);
   const [currencyPicker, setCurrencyPicker] =
     useState<CurrencyPickerMode>(null);
 
@@ -111,6 +118,35 @@ export default function SettingsScreen({
         : t('rateUpdateError'),
       updated ? 'info' : 'error'
     );
+  }
+
+  function closeDeleteDialog() {
+    if (deletingAccount) return;
+    setDeleteConfirmation('');
+    setDeleteVisible(false);
+  }
+
+  async function handleDeleteAccount() {
+    if (!user || deleteConfirmation.trim().toUpperCase() !== t('deleteAccountWord')) return;
+    if (connectivityStatus !== 'online') {
+      showFeedback(t('deleteAccountOffline'), 'error');
+      return;
+    }
+
+    setDeletingAccount(true);
+    try {
+      const { error } = await supabase.functions.invoke('delete-account', {
+        body: { confirmation: 'DELETE' },
+      });
+      if (error) throw error;
+      await clearOfflineUserData(user.id);
+      const { error: signOutError } = await supabase.auth.signOut({ scope: 'local' });
+      if (signOutError) throw signOutError;
+    } catch (error) {
+      console.error('Error deleting account:', error);
+      showFeedback(t('deleteAccountError'), 'error');
+      setDeletingAccount(false);
+    }
   }
 
   function chooseCurrency(currency: CurrencyCode) {
@@ -147,6 +183,21 @@ export default function SettingsScreen({
             title={t('signedIn')}
             value={user?.email ?? 'Cuenta de ExpenseTracker'}
           />
+          <View style={styles.divider} />
+          <TouchableOpacity
+            style={styles.dangerRow}
+            activeOpacity={0.75}
+            onPress={() => setDeleteVisible(true)}
+          >
+            <View style={styles.dangerIcon}>
+              <Ionicons name="trash-outline" size={21} color="#DC2626" />
+            </View>
+            <View style={styles.rowText}>
+              <Text style={styles.dangerTitle}>{t('deleteAccount')}</Text>
+              <Text style={styles.rowValue}>{t('deleteAccountDescription')}</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color="#DC2626" />
+          </TouchableOpacity>
         </View>
 
         <Text style={styles.sectionTitle}>{t('currencies')}</Text>
@@ -330,6 +381,61 @@ export default function SettingsScreen({
         </TouchableOpacity>
       </ScrollView>
 
+      <Modal
+        visible={deleteVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={closeDeleteDialog}
+      >
+        <View style={styles.modalBackdrop}>
+          <View style={styles.deleteDialog}>
+            <View style={styles.deleteDialogIcon}>
+              <Ionicons name="warning-outline" size={26} color="#DC2626" />
+            </View>
+            <Text style={styles.deleteDialogTitle}>{t('deleteAccount')}</Text>
+            <Text style={styles.deleteDialogDescription}>
+              {t('deleteAccountWarning')}
+            </Text>
+            <Text style={styles.deleteDialogInstruction}>
+              {t('deleteAccountInstruction')}
+            </Text>
+            <TextInput
+              style={styles.deleteInput}
+              value={deleteConfirmation}
+              onChangeText={setDeleteConfirmation}
+              autoCapitalize="characters"
+              autoCorrect={false}
+              editable={!deletingAccount}
+              placeholder={t('deleteAccountWord')}
+              placeholderTextColor="#9CA3AF"
+            />
+            <View style={styles.deleteActions}>
+              <TouchableOpacity
+                style={styles.cancelDeleteButton}
+                disabled={deletingAccount}
+                onPress={closeDeleteDialog}
+              >
+                <Text style={styles.cancelDeleteText}>{t('cancel')}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.confirmDeleteButton,
+                  (deletingAccount || deleteConfirmation.trim().toUpperCase() !== t('deleteAccountWord')) && styles.logoutButtonDisabled,
+                ]}
+                disabled={deletingAccount || deleteConfirmation.trim().toUpperCase() !== t('deleteAccountWord')}
+                onPress={() => void handleDeleteAccount()}
+              >
+                {deletingAccount ? (
+                  <ActivityIndicator color="#FFFFFF" />
+                ) : (
+                  <Text style={styles.confirmDeleteText}>{t('deleteAccountPermanently')}</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
       <CurrencyPickerModal
         visible={currencyPicker !== null}
         title={
@@ -478,6 +584,12 @@ const lightStyles = StyleSheet.create({
   rowTitle: { fontSize: 15, fontWeight: '700', color: '#111827' },
   rowValue: { marginTop: 3, fontSize: 12, lineHeight: 17, color: '#6B7280' },
   divider: { height: 1, marginLeft: 54, backgroundColor: '#F0F1F3' },
+  dangerRow: { minHeight: 78, flexDirection: 'row', alignItems: 'center', gap: 12 },
+  dangerIcon: {
+    width: 42, height: 42, borderRadius: 13, backgroundColor: '#FEF2F2',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  dangerTitle: { fontSize: 15, fontWeight: '700', color: '#DC2626' },
   modelProgressTrack: {
     height: 5, marginLeft: 54, marginRight: 4, marginBottom: 12,
     overflow: 'hidden', borderRadius: 3, backgroundColor: '#C7D2FE',
@@ -530,4 +642,35 @@ const lightStyles = StyleSheet.create({
   },
   logoutButtonDisabled: { opacity: 0.55 },
   logoutText: { fontSize: 15, fontWeight: '700', color: '#DC2626' },
+  modalBackdrop: {
+    flex: 1, padding: 22, backgroundColor: 'rgba(17, 24, 39, 0.55)',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  deleteDialog: {
+    width: '100%', maxWidth: 430, padding: 22, borderRadius: 22,
+    backgroundColor: '#FFFFFF',
+  },
+  deleteDialogIcon: {
+    width: 50, height: 50, borderRadius: 16, backgroundColor: '#FEF2F2',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  deleteDialogTitle: { marginTop: 16, fontSize: 22, fontWeight: '800', color: '#111827' },
+  deleteDialogDescription: { marginTop: 9, fontSize: 14, lineHeight: 21, color: '#4B5563' },
+  deleteDialogInstruction: { marginTop: 18, fontSize: 13, fontWeight: '700', color: '#374151' },
+  deleteInput: {
+    marginTop: 9, minHeight: 50, paddingHorizontal: 14, borderWidth: 1,
+    borderColor: '#FCA5A5', borderRadius: 14, backgroundColor: '#FFFFFF',
+    color: '#111827', fontSize: 15, fontWeight: '700',
+  },
+  deleteActions: { marginTop: 20, flexDirection: 'row', gap: 10 },
+  cancelDeleteButton: {
+    flex: 1, minHeight: 50, borderRadius: 14, borderWidth: 1,
+    borderColor: '#D1D5DB', alignItems: 'center', justifyContent: 'center',
+  },
+  cancelDeleteText: { fontSize: 14, fontWeight: '700', color: '#374151' },
+  confirmDeleteButton: {
+    flex: 1.4, minHeight: 50, paddingHorizontal: 10, borderRadius: 14,
+    backgroundColor: '#DC2626', alignItems: 'center', justifyContent: 'center',
+  },
+  confirmDeleteText: { fontSize: 13, fontWeight: '800', color: '#FFFFFF', textAlign: 'center' },
 });
