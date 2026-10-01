@@ -6,6 +6,7 @@
 } from 'react';
 
 import { useAuth } from './auth-context';
+import { parseLocalDateOnly, toLocalDateOnly } from '../lib/date-only';
 import { supabase } from '../lib/supabase';
 
 export type SummaryPeriod =
@@ -35,10 +36,6 @@ const PreferencesContext =
   createContext<PreferencesContextType | undefined>(
     undefined
   );
-
-function toDateOnly(date: Date) {
-  return date.toISOString().slice(0, 10);
-}
 
 export function PreferencesProvider({
   children,
@@ -98,19 +95,11 @@ export function PreferencesProvider({
       }
 
       if (data?.custom_start_date) {
-        setCustomStartDate(
-          new Date(
-            `${data.custom_start_date}T00:00:00`
-          )
-        );
+        setCustomStartDate(parseLocalDateOnly(data.custom_start_date));
       }
 
       if (data?.custom_end_date) {
-        setCustomEndDate(
-          new Date(
-            `${data.custom_end_date}T00:00:00`
-          )
-        );
+        setCustomEndDate(parseLocalDateOnly(data.custom_end_date));
       }
     } finally {
       setLoading(false);
@@ -153,8 +142,8 @@ export function PreferencesProvider({
         .upsert({
           user_id: user.id,
           summary_period: 'custom',
-          custom_start_date: toDateOnly(start),
-          custom_end_date: toDateOnly(end),
+          custom_start_date: toLocalDateOnly(start),
+          custom_end_date: toLocalDateOnly(end),
           updated_at: new Date().toISOString(),
         });
 

@@ -23,6 +23,7 @@ import {
   readOfflineCache,
   writeOfflineCache,
 } from '../lib/offline-storage';
+import { parseLocalDateOnly, toLocalDateOnly } from '../lib/date-only';
 import { supabase } from '../lib/supabase';
 import { advanceRecurringDate } from '../lib/recurring-dates';
 
@@ -116,7 +117,7 @@ function mapBudget(row: any): Budget {
     categoryId: row.category_id,
     amount: Number(row.amount),
     currency: (row.currency ?? 'EUR') as CurrencyCode,
-    monthStart: new Date(`${row.month_start}T12:00:00`),
+    monthStart: parseLocalDateOnly(row.month_start),
   };
 }
 
@@ -129,7 +130,7 @@ function mapRecurring(row: any): RecurringTransaction {
     amount: Number(row.amount),
     currency: (row.currency ?? 'EUR') as CurrencyCode,
     frequency: row.frequency as RecurringFrequency,
-    nextRunDate: new Date(`${row.next_run_date}T12:00:00`),
+    nextRunDate: parseLocalDateOnly(row.next_run_date),
     active: Boolean(row.active),
   };
 }
@@ -146,7 +147,7 @@ function incomeRow(item: Income, userId: string) {
 function budgetRow(item: Budget, userId: string) {
   return {
     id: item.id, user_id: userId, category_id: item.categoryId, amount: item.amount,
-    currency: item.currency, month_start: dateOnly(item.monthStart),
+    currency: item.currency, month_start: toLocalDateOnly(item.monthStart),
   };
 }
 
@@ -154,15 +155,8 @@ function recurringRow(item: RecurringTransaction, userId: string) {
   return {
     id: item.id, user_id: userId, kind: item.kind, category_id: item.categoryId,
     description: item.description, amount: item.amount, currency: item.currency,
-    frequency: item.frequency, next_run_date: dateOnly(item.nextRunDate), active: item.active,
+    frequency: item.frequency, next_run_date: toLocalDateOnly(item.nextRunDate), active: item.active,
   };
-}
-
-function dateOnly(date: Date) {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
 }
 
 function isMissingPlanningSchema(error: any) {
@@ -216,10 +210,10 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
         if (pendingOccurrence) {
           const pendingDate = new Date(pendingOccurrence.transaction_date);
           if (pendingDate.getTime() > today.getTime()) {
-            if (dateOnly(pendingDate) !== dateOnly(rule.nextRunDate)) {
+            if (toLocalDateOnly(pendingDate) !== toLocalDateOnly(rule.nextRunDate)) {
               const { error: alignError } = await supabase
                 .from('recurring_transactions')
-                .update({ next_run_date: dateOnly(pendingDate) })
+                .update({ next_run_date: toLocalDateOnly(pendingDate) })
                 .eq('id', rule.id)
                 .eq('user_id', user.id);
               if (alignError) throw alignError;
@@ -247,7 +241,7 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
 
           const { error: advanceError } = await supabase
             .from('recurring_transactions')
-            .update({ next_run_date: dateOnly(occurrenceDate) })
+            .update({ next_run_date: toLocalDateOnly(occurrenceDate) })
             .eq('id', rule.id)
             .eq('user_id', user.id);
           if (advanceError) throw advanceError;
@@ -291,7 +285,7 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
 
           const { error: advanceError } = await supabase
             .from('recurring_transactions')
-            .update({ next_run_date: dateOnly(occurrenceDate) })
+            .update({ next_run_date: toLocalDateOnly(occurrenceDate) })
             .eq('id', rule.id)
             .eq('user_id', user.id);
           if (advanceError) throw advanceError;
@@ -544,7 +538,7 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
   async function saveBudget(input: BudgetInput) {
     if (!user) throw new Error('User is not authenticated');
     const existing = budgets.find(
-      (item) => item.categoryId === input.categoryId && dateOnly(item.monthStart) === dateOnly(input.monthStart)
+      (item) => item.categoryId === input.categoryId && toLocalDateOnly(item.monthStart) === toLocalDateOnly(input.monthStart)
     );
     if (existing) return updateBudget(existing.id, input);
     const local: Budget = { id: createOfflineId(), ...input, monthStart: new Date(input.monthStart) };

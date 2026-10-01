@@ -18,6 +18,7 @@ import {
   resolveLanguage,
   translate,
 } from '../lib/i18n';
+import { toLocalDateOnly } from '../lib/date-only';
 
 export const CURRENCIES = [
   { code: 'EUR', name: 'Euro', symbol: '€' },
@@ -271,7 +272,7 @@ export function AppSettingsProvider({
               key: rateKey(source, displayCurrency),
               value: {
                 rate: data.rate as number,
-                date: data.date ?? new Date().toISOString().slice(0, 10),
+                date: data.date ?? toLocalDateOnly(new Date()),
                 fetchedAt: Date.now(),
               },
             };
@@ -309,7 +310,7 @@ export function AppSettingsProvider({
       if (sourceCurrency === displayCurrency) {
         return {
           rate: 1,
-          date: new Date().toISOString().slice(0, 10),
+          date: toLocalDateOnly(new Date()),
           fetchedAt: Date.now(),
         };
       }
