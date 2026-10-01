@@ -22,9 +22,8 @@ import {
 import { useAuth } from '../../context/auth-context';
 import { useFeedback } from '../../context/feedback-context';
 import { useConnectivity } from '../../context/connectivity-context';
-import { E5Status, useE5Model } from '../../context/e5-model-context';
 import { useAppStyles } from '../../lib/themed-styles';
-import { LANGUAGE_OPTIONS, TranslationKey } from '../../lib/i18n';
+import { LANGUAGE_OPTIONS } from '../../lib/i18n';
 import { clearOfflineUserData } from '../../lib/offline-storage';
 import { supabase } from '../../lib/supabase';
 
@@ -34,29 +33,6 @@ type SettingsScreenProps = {
 
 type CurrencyPickerMode = 'input' | 'display' | null;
 
-function e5Description(
-  status: E5Status,
-  progress: number,
-  t: (key: TranslationKey) => string
-) {
-  if (status === 'ready') return t('engineReady');
-  if (status === 'error') return t('engineFallback');
-  if (status === 'expo-go') return t('engineInstalled');
-  if (status === 'downloading') return `${t('engineDownloading')} · ${Math.round(progress * 100)}%`;
-  if (status === 'loading') return t('engineStarting');
-  return t('engineChecking');
-}
-
-function e5Colors(status: E5Status) {
-  if (status === 'ready') {
-    return { color: '#047857', background: '#DCFCE7' };
-  }
-  if (status === 'error') {
-    return { color: '#B91C1C', background: '#FEE2E2' };
-  }
-  return { color: '#A16207', background: '#FEF3C7' };
-}
-
 export default function SettingsScreen({
   onClose,
 }: SettingsScreenProps) {
@@ -64,11 +40,6 @@ export default function SettingsScreen({
   const { user, signOut } = useAuth();
   const { showFeedback } = useFeedback();
   const { status: connectivityStatus, retry: retryConnectivity } = useConnectivity();
-  const {
-    status: e5Status,
-    progress: e5Progress,
-    retry: retryE5,
-  } = useE5Model();
   const {
     inputCurrency,
     displayCurrency,
@@ -95,7 +66,6 @@ export default function SettingsScreen({
     useState<CurrencyPickerMode>(null);
 
   const currentRate = getRate(inputCurrency);
-  const modelColors = e5Colors(e5Status);
 
   async function handleSignOut() {
     if (signingOut) return;
@@ -311,18 +281,12 @@ export default function SettingsScreen({
         <View style={styles.card}>
           <SettingRow
             styles={styles}
-            icon={e5Status === 'ready' ? 'checkmark-circle' : 'sparkles-outline'}
-            iconColor={modelColors.color}
-            iconBackground={modelColors.background}
-            title={t('intelligentEngine')}
-            value={e5Description(e5Status, e5Progress, t)}
-            onPress={e5Status === 'error' ? retryE5 : undefined}
+            icon="pricetags-outline"
+            iconColor="#4F46E5"
+            iconBackground="#EEF2FF"
+            title={t('categorySuggestions')}
+            value={t('categorySuggestionsDescription')}
           />
-          {e5Status === 'downloading' && (
-            <View style={styles.modelProgressTrack}>
-              <View style={[styles.modelProgressFill, { width: `${Math.round(e5Progress * 100)}%` }]} />
-            </View>
-          )}
           <View style={styles.divider} />
           <SettingRow
             styles={styles}
@@ -590,11 +554,6 @@ const lightStyles = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
   },
   dangerTitle: { fontSize: 15, fontWeight: '700', color: '#DC2626' },
-  modelProgressTrack: {
-    height: 5, marginLeft: 54, marginRight: 4, marginBottom: 12,
-    overflow: 'hidden', borderRadius: 3, backgroundColor: '#C7D2FE',
-  },
-  modelProgressFill: { height: 5, borderRadius: 3, backgroundColor: '#4F46E5' },
   rateRow: {
     minHeight: 82,
     paddingVertical: 12,

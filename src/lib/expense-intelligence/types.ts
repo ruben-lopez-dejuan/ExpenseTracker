@@ -11,5 +11,5 @@ export type CategorySuggestion = {
 
 export type CategoryClassificationResult = {
   suggestions: CategorySuggestion[];
-  source: 'e5' | 'heuristic';
+  source: 'heuristic';
 };

@@ -21,9 +21,7 @@
           }
         }
       ],
-      "@react-native-community/datetimepicker",
-      "onnxruntime-react-native",
-      "expo-asset"
+      "@react-native-community/datetimepicker"
     ],
     "experiments": {
       "typedRoutes": true,

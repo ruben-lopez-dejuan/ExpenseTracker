@@ -5,15 +5,12 @@
   "dependencies": {
     "@expo/ui": "~57.0.17",
     "@expo/vector-icons": "^15.0.2",
-    "@huggingface/tokenizers": "^0.2.0",
     "@react-native-community/datetimepicker": "9.1.0",
     "@supabase/supabase-js": "^2.116.0",
     "expo": "~57.0.21",
-    "expo-asset": "~57.0.16",
     "expo-constants": "~57.0.17",
     "expo-dev-client": "~57.0.18",
     "expo-device": "~57.0.1",
-    "expo-file-system": "~57.0.6",
     "expo-font": "~57.0.3",
     "expo-glass-effect": "~57.0.2",
     "expo-haptics": "~57.0.2",
@@ -26,7 +23,6 @@
     "expo-symbols": "~57.0.2",
     "expo-system-ui": "~57.0.3",
     "expo-web-browser": "~57.0.2",
-    "onnxruntime-react-native": "^1.24.3",
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "react-native": "0.86.3",
@@ -50,9 +46,8 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
-    "test": "node --experimental-strip-types --test tests/financial-logic.test.mjs",
-    "lint": "expo lint",
-    "postinstall": "node scripts/fix-onnx-expo.mjs"
+    "test": "node --experimental-strip-types --test tests/*.test.mjs",
+    "lint": "expo lint"
   },
   "private": true
 }

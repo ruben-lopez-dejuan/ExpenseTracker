@@ -97,8 +97,6 @@ export default function AddExpenseScreen({
     useState(false);
   const [suggestedCategoryIds, setSuggestedCategoryIds] =
     useState<string[]>([]);
-  const [classificationSource, setClassificationSource] =
-    useState<'e5' | 'heuristic' | null>(null);
   const [classifying, setClassifying] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -134,7 +132,6 @@ export default function AddExpenseScreen({
 
     if (text.length < 2 || categories.length === 0) {
       setSuggestedCategoryIds([]);
-      setClassificationSource(null);
       setClassifying(false);
       return;
     }
@@ -164,7 +161,6 @@ export default function AddExpenseScreen({
               (item) => item.categoryId
             )
           );
-          setClassificationSource(result.source);
         })
         .catch((error) => {
           console.warn(
@@ -243,7 +239,6 @@ export default function AddExpenseScreen({
       setExpenseCurrency(inputCurrency);
       setCategoryId(null);
       setSuggestedCategoryIds([]);
-      setClassificationSource(null);
       setTransactionDate(new Date());
 
       showFeedback(
@@ -513,24 +508,9 @@ export default function AddExpenseScreen({
           {suggestedCategories.length > 0 && (
             <View style={styles.suggestionsSection}>
               <View style={styles.suggestionsHeader}>
-                <View style={styles.suggestionsTitleRow}>
-                  <Ionicons
-                    name="sparkles"
-                    size={16}
-                    color="#4F46E5"
-                  />
-                  <Text style={styles.suggestionsTitle}>
-                    {t('suggested')}
-                  </Text>
-                </View>
-
-                {__DEV__ && classificationSource && (
-                  <Text style={styles.sourceBadge}>
-                    {classificationSource === 'e5'
-                      ? 'Inteligente'
-                      : 'Básica'}
-                  </Text>
-                )}
+                <Text style={styles.suggestionsTitle}>
+                  {t('suggested')}
+                </Text>
               </View>
 
               <View style={styles.suggestionsList}>
@@ -948,27 +928,10 @@ const lightStyles = StyleSheet.create({
     justifyContent: 'space-between',
   },
 
-  suggestionsTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-
   suggestionsTitle: {
     fontSize: 13,
     fontWeight: '700',
     color: '#4F46E5',
-  },
-
-  sourceBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 99,
-    overflow: 'hidden',
-    backgroundColor: '#ECFDF5',
-    fontSize: 10,
-    fontWeight: '700',
-    color: '#047857',
   },
 
   suggestionsList: {
