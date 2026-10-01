@@ -26,7 +26,7 @@ import {
 import { parseLocalDateOnly, toLocalDateOnly } from '../lib/date-only';
 import { supabase } from '../lib/supabase';
 import {
-  collectDueRecurringDates,
+  planRecurringCatchUp,
   RecurringCatchUpLimitError,
 } from '../lib/recurring-dates';
 
@@ -210,10 +210,12 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
             row,
           ])
         );
-        const { dates: dueDates, nextDate } = collectDueRecurringDates(
+        const { dates: dueDates, nextDate } = planRecurringCatchUp(
           rule.nextRunDate,
           rule.frequency,
-          today
+          today,
+          new Set(existingByDate.keys()),
+          toLocalDateOnly
         );
 
         for (const occurrenceDate of dueDates) {

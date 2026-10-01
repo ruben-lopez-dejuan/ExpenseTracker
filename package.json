@@ -50,6 +50,7 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
+    "test": "node --experimental-strip-types --test tests/financial-logic.test.mjs",
     "lint": "expo lint",
     "postinstall": "node scripts/fix-onnx-expo.mjs"
   },

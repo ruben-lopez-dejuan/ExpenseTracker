@@ -33,6 +33,10 @@ import {
 } from '../../context/preferences-context';
 import { useAppStyles } from '../../lib/themed-styles';
 import { sumConvertedAmounts } from '../../lib/currency';
+import {
+  addLocalDays,
+  getCalendarPeriodRange,
+} from '../../lib/periods';
 
 type HomeScreenProps = {
   onAddExpense: (initialDate: Date) => void;
@@ -49,82 +53,13 @@ const periodOptions: {
   { labelKey: 'year', value: 'year' },
 ];
 
-function startOfDay(date: Date) {
-  const result = new Date(date);
-  result.setHours(0, 0, 0, 0);
-  return result;
-}
-
-function addDays(
-  date: Date,
-  days: number
-) {
-  const result = new Date(date);
-  result.setDate(result.getDate() + days);
-  return result;
-}
-
-function getNaturalRange(
-  period: SummaryPeriod,
-  anchor: Date
-) {
-  let start = startOfDay(anchor);
-  let end = new Date(start);
-
-  if (period === 'day') {
-    end = addDays(start, 1);
-  }
-
-  if (period === 'week') {
-    const day = start.getDay();
-
-    const diff =
-      day === 0
-        ? -6
-        : 1 - day;
-
-    start = addDays(start, diff);
-    end = addDays(start, 7);
-  }
-
-  if (period === 'month') {
-    start = new Date(
-      anchor.getFullYear(),
-      anchor.getMonth(),
-      1
-    );
-
-    end = new Date(
-      anchor.getFullYear(),
-      anchor.getMonth() + 1,
-      1
-    );
-  }
-
-  if (period === 'year') {
-    start = new Date(
-      anchor.getFullYear(),
-      0,
-      1
-    );
-
-    end = new Date(
-      anchor.getFullYear() + 1,
-      0,
-      1
-    );
-  }
-
-  return { start, end };
-}
-
 function formatRange(
   start: Date,
   endExclusive: Date,
   locale: string
 ) {
   const end =
-    addDays(endExclusive, -1);
+    addLocalDays(endExclusive, -1);
 
   if (
     start.getTime() ===
@@ -237,36 +172,12 @@ export default function HomeScreen({
       null
     );
 
-  let range;
-
-  if (
-    summaryPeriod === 'custom' &&
-    customStartDate &&
+  const range = getCalendarPeriodRange(
+    summaryPeriod,
+    anchorDate,
+    customStartDate,
     customEndDate
-  ) {
-    range = {
-      start:
-        startOfDay(
-          customStartDate
-        ),
-      end:
-        addDays(
-          startOfDay(
-            customEndDate
-          ),
-          1
-        ),
-    };
-  } else {
-    range =
-      getNaturalRange(
-        summaryPeriod ===
-          'custom'
-          ? 'month'
-          : summaryPeriod,
-        anchorDate
-      );
-  }
+  );
 
   const periodExpenses =
     expenses.filter(

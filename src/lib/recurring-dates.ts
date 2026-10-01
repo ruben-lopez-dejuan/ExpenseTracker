@@ -67,12 +67,16 @@ export function collectDueRecurringDates(
   firstDate: Date,
   frequency: RecurringFrequency,
   throughDate: Date,
-  limit = MAX_RECURRING_CATCH_UP
+  limit = MAX_RECURRING_CATCH_UP,
+  endDate?: Date | null
 ) {
   const dates: Date[] = [];
   let current = new Date(firstDate);
+  const effectiveEnd = endDate && endDate.getTime() < throughDate.getTime()
+    ? endDate
+    : throughDate;
 
-  while (current.getTime() <= throughDate.getTime()) {
+  while (current.getTime() <= effectiveEnd.getTime()) {
     if (dates.length >= limit) throw new RecurringCatchUpLimitError(limit);
     dates.push(new Date(current));
     const next = advanceRecurringDate(current, frequency);
@@ -83,4 +87,27 @@ export function collectDueRecurringDates(
   }
 
   return { dates, nextDate: current };
+}
+
+export function planRecurringCatchUp(
+  firstDate: Date,
+  frequency: RecurringFrequency,
+  throughDate: Date,
+  existingDateKeys: ReadonlySet<string>,
+  dateKey: (date: Date) => string,
+  limit = MAX_RECURRING_CATCH_UP,
+  endDate?: Date | null
+) {
+  const { dates, nextDate } = collectDueRecurringDates(
+    firstDate,
+    frequency,
+    throughDate,
+    limit,
+    endDate
+  );
+  return {
+    dates,
+    missingDates: dates.filter((date) => !existingDateKeys.has(dateKey(date))),
+    nextDate,
+  };
 }
