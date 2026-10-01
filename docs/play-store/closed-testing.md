@@ -43,8 +43,8 @@ Descarga el `.aab` desde el enlace que muestra EAS. Para Play Store usa el perfi
 4. Completar Acceso a la aplicación con una cuenta de revisión funcional y sus instrucciones.
 5. Completar Público objetivo, Clasificación de contenido y Funciones financieras.
 6. Completar Seguridad de los datos siguiendo `data-safety.md`.
-7. Añadir la URL pública de la política de privacidad.
-8. Añadir la URL pública para solicitar la eliminación de cuenta.
+7. Añadir la política de privacidad: `https://ruben-lopez-dejuan.github.io/ExpenseTracker-legal/privacy.html`.
+8. Añadir la URL de eliminación: `https://ruben-lopez-dejuan.github.io/ExpenseTracker-legal/delete-account.html`.
 9. Crear una pista de testing cerrado, subir el AAB y añadir el grupo o lista de testers.
 10. Revisar los avisos automáticos, guardar y enviar la versión a revisión.
 

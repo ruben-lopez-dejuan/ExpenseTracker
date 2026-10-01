@@ -1,18 +1,18 @@
-# Política de privacidad — contenido pendiente de publicar
+# Política de privacidad — versión publicada
 
-Este documento necesita el nombre o identidad del responsable, un correo de soporte y una URL pública antes de poder usarse en Google Play.
+URL pública: `https://ruben-lopez-dejuan.github.io/ExpenseTracker-legal/privacy.html`
 
 ## Política de privacidad de Expense Tracker
 
-**Última actualización:** [FECHA]
+**Última actualización:** 2 de octubre de 2026
 
 Expense Tracker permite registrar y organizar gastos, ingresos, presupuestos y movimientos recurrentes. Esta política explica qué datos tratamos, para qué los usamos y cómo puede ejercer sus derechos.
 
 ### Responsable y contacto
 
-Responsable: [NOMBRE O IDENTIDAD DEL RESPONSABLE]
+Responsable: RL Devs
 
-Contacto: [CORREO DE SOPORTE]
+Contacto: support.rldevs@gmail.com
 
 ### Datos que tratamos
 
@@ -34,11 +34,11 @@ Conservamos la información mientras la cuenta permanece activa o mientras sea n
 
 ### Eliminación de la cuenta
 
-El usuario puede eliminar permanentemente la cuenta y sus datos desde **Ajustes → Cuenta → Eliminar cuenta**. También puede solicitarlo en [URL PÚBLICA DE ELIMINACIÓN]. La eliminación es irreversible.
+El usuario puede eliminar permanentemente la cuenta y sus datos desde **Ajustes → Cuenta → Eliminar cuenta**. También puede solicitarlo en `https://ruben-lopez-dejuan.github.io/ExpenseTracker-legal/delete-account.html`. La eliminación es irreversible.
 
 ### Derechos
 
-Puede solicitar acceso, rectificación o eliminación de sus datos mediante [CORREO DE SOPORTE]. Podemos pedir información razonable para verificar la titularidad de la cuenta antes de atender la solicitud.
+Puede solicitar acceso, rectificación o eliminación de sus datos mediante support.rldevs@gmail.com. Podemos pedir información razonable para verificar la titularidad de la cuenta antes de atender la solicitud.
 
 ### Menores
 

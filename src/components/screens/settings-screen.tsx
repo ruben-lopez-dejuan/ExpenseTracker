@@ -4,6 +4,7 @@ import { useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Linking,
   Modal,
   ScrollView,
   StyleSheet,
@@ -26,6 +27,7 @@ import { useConnectivity } from '../../context/connectivity-context';
 import { E5Status, useE5Model } from '../../context/e5-model-context';
 import { useAppStyles } from '../../lib/themed-styles';
 import { TranslationKey } from '../../lib/i18n';
+import { ACCOUNT_DELETION_URL, PRIVACY_POLICY_URL } from '../../lib/legal';
 import { clearOfflineUserData } from '../../lib/offline-storage';
 import { supabase } from '../../lib/supabase';
 
@@ -338,8 +340,19 @@ export default function SettingsScreen({
             icon="shield-checkmark-outline"
             iconColor="#0369A1"
             iconBackground="#E0F2FE"
-            title={t('privacy')}
-            value={t('privacyDescription')}
+            title={t('privacyPolicy')}
+            value={t('privacyPolicyDescription')}
+            onPress={() => void Linking.openURL(PRIVACY_POLICY_URL)}
+          />
+          <View style={styles.divider} />
+          <SettingRow
+            styles={styles}
+            icon="person-remove-outline"
+            iconColor="#B91C1C"
+            iconBackground="#FEE2E2"
+            title={t('accountDeletionInfo')}
+            value={t('accountDeletionInfoDescription')}
+            onPress={() => void Linking.openURL(ACCOUNT_DELETION_URL)}
           />
           <View style={styles.divider} />
           <SettingRow
