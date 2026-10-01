@@ -21,7 +21,8 @@
           }
         }
       ],
-      "@react-native-community/datetimepicker"
+      "@react-native-community/datetimepicker",
+      "onnxruntime-react-native"
     ],
     "experiments": {
       "typedRoutes": true,

@@ -9,6 +9,12 @@ export type {
   CategorySuggestion,
 } from './types';
 
+let e5EnabledForSession = false;
+
+export function setE5ClassifierEnabled(enabled: boolean) {
+  e5EnabledForSession = enabled;
+}
+
 function normalizeText(value: string) {
   return value
     .normalize('NFD')
@@ -58,5 +64,16 @@ export async function classifyCategories(
   if (!text.trim() || categories.length === 0) {
     return { suggestions: [], source: 'heuristic' };
   }
+
+  if (e5EnabledForSession) {
+    try {
+      const { classifyCategoriesWithE5 } = await import('./e5-category-classifier');
+      return await classifyCategoriesWithE5(text, categories, limit);
+    } catch (error) {
+      e5EnabledForSession = false;
+      if (__DEV__) console.warn('[Classifier] El modelo local falló; se mantiene la categorización básica.', error);
+    }
+  }
+
   return classifyWithHeuristics(text, categories, limit);
 }

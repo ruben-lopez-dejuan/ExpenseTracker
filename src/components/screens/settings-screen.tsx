@@ -3,6 +3,7 @@ import Constants from 'expo-constants';
 import { useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   Modal,
   ScrollView,
   StyleSheet,
@@ -22,7 +23,9 @@ import {
 import { useAuth } from '../../context/auth-context';
 import { useFeedback } from '../../context/feedback-context';
 import { useConnectivity } from '../../context/connectivity-context';
+import { E5Status, useE5Model } from '../../context/e5-model-context';
 import { useAppStyles } from '../../lib/themed-styles';
+import { TranslationKey } from '../../lib/i18n';
 import { clearOfflineUserData } from '../../lib/offline-storage';
 import { supabase } from '../../lib/supabase';
 
@@ -32,6 +35,16 @@ type SettingsScreenProps = {
 
 type CurrencyPickerMode = 'input' | 'display' | null;
 
+function modelDescription(status: E5Status, progress: number, t: (key: TranslationKey) => string) {
+  if (status === 'ready') return t('advancedModelReady');
+  if (status === 'expo-go') return t('advancedModelBuildRequired');
+  if (status === 'downloading') return `${t('advancedModelDownloading')} · ${Math.round(progress * 100)}%`;
+  if (status === 'loading') return t('advancedModelLoading');
+  if (status === 'error') return t('advancedModelError');
+  if (status === 'checking') return t('advancedModelChecking');
+  return t('advancedModelOptional');
+}
+
 export default function SettingsScreen({
   onClose,
 }: SettingsScreenProps) {
@@ -39,6 +52,7 @@ export default function SettingsScreen({
   const { user, signOut } = useAuth();
   const { showFeedback } = useFeedback();
   const { status: connectivityStatus, retry: retryConnectivity } = useConnectivity();
+  const model = useE5Model();
   const {
     inputCurrency,
     displayCurrency,
@@ -84,6 +98,17 @@ export default function SettingsScreen({
         ? t('rateUpdated')
         : t('rateUpdateError'),
       updated ? 'info' : 'error'
+    );
+  }
+
+  function handleRemoveModel() {
+    Alert.alert(
+      t('removeAdvancedModel'),
+      t('removeAdvancedModelConfirm'),
+      [
+        { text: t('cancel'), style: 'cancel' },
+        { text: t('delete'), style: 'destructive', onPress: () => void model.remove() },
+      ]
     );
   }
 
@@ -263,6 +288,39 @@ export default function SettingsScreen({
 
         <Text style={styles.sectionTitle}>{t('categories')}</Text>
         <View style={styles.card}>
+          <SettingRow
+            styles={styles}
+            icon={model.status === 'ready' ? 'checkmark-circle' : 'sparkles-outline'}
+            iconColor={model.status === 'ready' ? '#047857' : '#4F46E5'}
+            iconBackground={model.status === 'ready' ? '#DCFCE7' : '#EEF2FF'}
+            title={t('advancedCategorization')}
+            value={modelDescription(model.status, model.progress, t)}
+            onPress={model.status === 'not-installed'
+              ? () => void model.download()
+              : model.status === 'error'
+                ? () => void model.download()
+                : undefined}
+          />
+          {model.status === 'downloading' && (
+            <View style={styles.modelProgressTrack}>
+              <View style={[styles.modelProgressFill, { width: `${Math.round(model.progress * 100)}%` }]} />
+            </View>
+          )}
+          {model.status === 'ready' && (
+            <>
+              <View style={styles.divider} />
+              <SettingRow
+                styles={styles}
+                icon="trash-outline"
+                iconColor="#B91C1C"
+                iconBackground="#FEE2E2"
+                title={t('removeAdvancedModel')}
+                value={t('removeAdvancedModelDescription')}
+                onPress={handleRemoveModel}
+              />
+            </>
+          )}
+          <View style={styles.divider} />
           <SettingRow
             styles={styles}
             icon="pricetags-outline"
@@ -513,6 +571,11 @@ const lightStyles = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
   },
   dangerTitle: { fontSize: 15, fontWeight: '700', color: '#DC2626' },
+  modelProgressTrack: {
+    height: 5, marginLeft: 54, marginRight: 4, marginBottom: 12,
+    overflow: 'hidden', borderRadius: 3, backgroundColor: '#C7D2FE',
+  },
+  modelProgressFill: { height: 5, borderRadius: 3, backgroundColor: '#4F46E5' },
   rateRow: {
     minHeight: 82,
     paddingVertical: 12,

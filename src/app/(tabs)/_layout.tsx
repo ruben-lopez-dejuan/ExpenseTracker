@@ -4,6 +4,7 @@
 } from 'expo-router';
 
 import { useAuth } from '../../context/auth-context';
+import { E5ModelProvider } from '../../context/e5-model-context';
 
 export default function MainLayout() {
   const { session, loading } = useAuth();
@@ -17,10 +18,12 @@ export default function MainLayout() {
   }
 
   return (
-    <Stack
-      screenOptions={{
-        headerShown: false,
-      }}
-    />
+    <E5ModelProvider>
+      <Stack
+        screenOptions={{
+          headerShown: false,
+        }}
+      />
+    </E5ModelProvider>
   );
 }
