@@ -32,6 +32,7 @@ import {
   usePreferences,
 } from '../../context/preferences-context';
 import { useAppStyles } from '../../lib/themed-styles';
+import { sumConvertedAmounts } from '../../lib/currency';
 
 type HomeScreenProps = {
   onAddExpense: (initialDate: Date) => void;
@@ -278,19 +279,14 @@ export default function HomeScreen({
           range.end.getTime()
     );
 
-  const total =
-    periodExpenses.reduce(
-      (sum, expense) =>
-        sum +
-        convertAmount(
-          expense.amount,
-          expense.currency
-        ),
-      0
-    );
+  const total = sumConvertedAmounts(
+    periodExpenses,
+    (expense) => convertAmount(expense.amount, expense.currency)
+  );
 
-  const breakdown =
-    categories
+  const breakdown = total === null
+    ? []
+    : categories
       .map((category) => {
         const categoryExpenses =
           periodExpenses.filter(
@@ -304,18 +300,10 @@ export default function HomeScreen({
           expenses:
             categoryExpenses,
           value:
-            categoryExpenses.reduce(
-              (
-                sum,
-                expense
-              ) =>
-                sum +
-                convertAmount(
-                  expense.amount,
-                  expense.currency
-                ),
-              0
-            ),
+            sumConvertedAmounts(
+              categoryExpenses,
+              (expense) => convertAmount(expense.amount, expense.currency)
+            ) ?? 0,
         };
       })
       .filter(
@@ -568,7 +556,7 @@ export default function HomeScreen({
               styles.periodTotalLabel
             }
           >
-            {t('totalPeriod')}
+            {total === null ? t('rateUpdateError') : t('totalPeriod')}
           </Text>
         </View>
 
@@ -588,7 +576,7 @@ export default function HomeScreen({
           {breakdown.map(
             (item) => {
               const percentage =
-                total > 0
+                total !== null && total > 0
                   ? (item.value /
                       total) *
                     100

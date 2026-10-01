@@ -25,6 +25,7 @@ import { Expense, useExpenses } from '../../context/expenses-context';
 import { useFeedback } from '../../context/feedback-context';
 import { Budget, Income, RecurringFrequency, RecurringKind, RecurringTransaction, useFinance } from '../../context/finance-context';
 import { recurringDatesBetween } from '../../lib/recurring-dates';
+import { sumConvertedAmounts } from '../../lib/currency';
 import { useAppStyles } from '../../lib/themed-styles';
 
 function monthStart(date: Date) {
@@ -115,12 +116,20 @@ export default function PlanningScreen({ onAddIncome, onOpenSettings }: { onAddI
       recurringId: rule.id,
     }))), [anchor, persistedRecurringKeys, recurring]);
   const projectedMonthExpenses = projectedMonth.filter((item) => item.kind === 'expense');
-  const expenseTotal = [...monthExpenses, ...projectedMonthExpenses]
-    .reduce((sum, item) => sum + convertAmount(item.amount, item.currency), 0);
-  const incomeTotal = [...monthIncomes, ...projectedMonth.filter((item) => item.kind === 'income')]
-    .reduce((sum, item) => sum + convertAmount(item.amount, item.currency), 0);
-  const balance = incomeTotal - expenseTotal;
-  const savingsRate = incomeTotal > 0 ? (balance / incomeTotal) * 100 : 0;
+  const expenseTotal = sumConvertedAmounts(
+    [...monthExpenses, ...projectedMonthExpenses],
+    (item) => convertAmount(item.amount, item.currency)
+  );
+  const incomeTotal = sumConvertedAmounts(
+    [...monthIncomes, ...projectedMonth.filter((item) => item.kind === 'income')],
+    (item) => convertAmount(item.amount, item.currency)
+  );
+  const balance = incomeTotal === null || expenseTotal === null
+    ? null
+    : incomeTotal - expenseTotal;
+  const savingsRate = balance === null || incomeTotal === null
+    ? null
+    : incomeTotal > 0 ? (balance / incomeTotal) * 100 : 0;
   const monthBudgets = budgets.filter((item) => sameMonth(item.monthStart, anchor));
   const recentIncomes = [...incomes].sort((a, b) => b.transactionDate.getTime() - a.transactionDate.getTime()).slice(0, 4);
   const upcoming = useMemo<UpcomingMovement[]>(() => {
@@ -163,12 +172,18 @@ export default function PlanningScreen({ onAddIncome, onOpenSettings }: { onAddI
   }, [expenses, incomes, persistedRecurringKeys, recurring]);
 
   const budgetRows = useMemo(() => monthBudgets.map((budget) => {
-    const spent = [...monthExpenses, ...projectedMonthExpenses]
-      .filter((expense) => budget.categoryId === null || expense.categoryId === budget.categoryId)
-      .reduce((sum, expense) => sum + convertAmount(expense.amount, expense.currency), 0);
+    const spent = sumConvertedAmounts(
+      [...monthExpenses, ...projectedMonthExpenses]
+        .filter((expense) => budget.categoryId === null || expense.categoryId === budget.categoryId),
+      (expense) => convertAmount(expense.amount, expense.currency)
+    );
     const limit = convertAmount(budget.amount, budget.currency);
-    return { budget, spent, limit, ratio: limit > 0 ? spent / limit : 0 };
+    const ratio = spent === null || limit === null ? null : limit > 0 ? spent / limit : 0;
+    return { budget, spent, limit, ratio };
   }), [monthBudgets, monthExpenses, projectedMonthExpenses, convertAmount]);
+
+  const formatAggregate = (value: number | null) =>
+    value === null ? '—' : formatMoney(value, displayCurrency);
 
   function editUpcomingMovement(movement: UpcomingMovement) {
     setUpcomingVisible(false);
@@ -212,6 +227,13 @@ export default function PlanningScreen({ onAddIncome, onOpenSettings }: { onAddI
           </View>
         )}
 
+        {(expenseTotal === null || incomeTotal === null) && (
+          <View style={styles.setupCard}>
+            <Ionicons name="alert-circle-outline" size={23} color="#92400E" />
+            <Text style={styles.setupText}>{t('rateUpdateError')}</Text>
+          </View>
+        )}
+
         <View style={styles.monthNavigator}>
           <TouchableOpacity onPress={() => setAnchor(new Date(anchor.getFullYear(), anchor.getMonth() - 1, 1))}>
             <Ionicons name="chevron-back" size={22} color="#4F46E5" />
@@ -224,11 +246,11 @@ export default function PlanningScreen({ onAddIncome, onOpenSettings }: { onAddI
 
         <View style={styles.balanceCard}>
           <Text style={styles.balanceLabel}>{t('monthBalance')}</Text>
-          <Text style={[styles.balanceAmount, balance < 0 && styles.negative]}>{formatMoney(balance, displayCurrency)}</Text>
+          <Text style={[styles.balanceAmount, balance !== null && balance < 0 && styles.negative]}>{formatAggregate(balance)}</Text>
           <View style={styles.balanceDetails}>
-            <View><Text style={styles.detailLabel}>{t('incomes')}</Text><Text style={styles.incomeText}>{formatMoney(incomeTotal, displayCurrency)}</Text></View>
-            <View><Text style={styles.detailLabel}>{t('totalExpenses')}</Text><Text style={styles.expenseText}>{formatMoney(expenseTotal, displayCurrency)}</Text></View>
-            <View><Text style={styles.detailLabel}>{t('savings')}</Text><Text style={styles.detailValue}>{Math.round(savingsRate)}%</Text></View>
+            <View><Text style={styles.detailLabel}>{t('incomes')}</Text><Text style={styles.incomeText}>{formatAggregate(incomeTotal)}</Text></View>
+            <View><Text style={styles.detailLabel}>{t('totalExpenses')}</Text><Text style={styles.expenseText}>{formatAggregate(expenseTotal)}</Text></View>
+            <View><Text style={styles.detailLabel}>{t('savings')}</Text><Text style={styles.detailValue}>{savingsRate === null ? '—' : `${Math.round(savingsRate)}%`}</Text></View>
           </View>
         </View>
 
@@ -255,14 +277,14 @@ export default function PlanningScreen({ onAddIncome, onOpenSettings }: { onAddI
           <EmptyCard icon="speedometer-outline" text={t('createBudgetHint')} />
         ) : budgetRows.map(({ budget, spent, limit, ratio }) => {
           const category = budget.categoryId ? getCategoryById(budget.categoryId) : null;
-          const color = ratio >= 1 ? '#DC2626' : ratio >= 0.8 ? '#D97706' : category?.color ?? '#4F46E5';
+          const color = ratio === null ? '#9CA3AF' : ratio >= 1 ? '#DC2626' : ratio >= 0.8 ? '#D97706' : category?.color ?? '#4F46E5';
           return (
             <TouchableOpacity key={budget.id} activeOpacity={0.75} style={styles.listCard} onPress={() => { setEditingBudget(budget); setBudgetVisible(true); }}>
               <View style={[styles.iconBox, { backgroundColor: `${color}18` }]}><Ionicons name={(category?.icon ?? 'pie-chart-outline') as any} size={21} color={color} /></View>
               <View style={styles.flex}>
-                <View style={styles.rowBetween}><Text style={styles.cardTitle}>{category?.name ?? t('totalBudget')}</Text><Text style={styles.cardAmount}>{formatMoney(spent, displayCurrency)} / {formatMoney(limit, displayCurrency)}</Text></View>
-                <View style={styles.progressTrack}><View style={[styles.progressFill, { width: `${Math.min(ratio * 100, 100)}%`, backgroundColor: color }]} /></View>
-                <Text style={[styles.progressText, { color }]}>{Math.round(ratio * 100)}% {t('used')} · {t('tapToEdit')}</Text>
+                <View style={styles.rowBetween}><Text style={styles.cardTitle}>{category?.name ?? t('totalBudget')}</Text><Text style={styles.cardAmount}>{formatAggregate(spent)} / {formatAggregate(limit)}</Text></View>
+                <View style={styles.progressTrack}><View style={[styles.progressFill, { width: `${ratio === null ? 0 : Math.min(ratio * 100, 100)}%`, backgroundColor: color }]} /></View>
+                <Text style={[styles.progressText, { color }]}>{ratio === null ? t('rateUpdateError') : `${Math.round(ratio * 100)}% ${t('used')} · ${t('tapToEdit')}`}</Text>
               </View>
             </TouchableOpacity>
           );

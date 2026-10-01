@@ -17,7 +17,7 @@ type DonutItem = {
 
 type Props = {
   items: DonutItem[];
-  total: number;
+  total: number | null;
   currency: CurrencyCode;
 };
 
@@ -61,7 +61,7 @@ export default function ExpenseDonut({
           fill="none"
         />
 
-        {total > 0 &&
+        {total !== null && total > 0 &&
           items.map(
             (
               item,
@@ -119,14 +119,15 @@ export default function ExpenseDonut({
         <Text
           style={styles.total}
         >
-          {new Intl.NumberFormat(
-            locale,
-            {
-              style:
-                'currency',
-              currency,
-            }
-          ).format(total)}
+          {total === null
+            ? '—'
+            : new Intl.NumberFormat(
+                locale,
+                {
+                  style: 'currency',
+                  currency,
+                }
+              ).format(total)}
         </Text>
 
         <Text

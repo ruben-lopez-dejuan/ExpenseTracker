@@ -13,6 +13,7 @@ import {
   writeOfflineCache,
 } from '../lib/offline-storage';
 import { supabase } from '../lib/supabase';
+import { sumConvertedAmounts } from '../lib/currency';
 
 export type ExpenseStatus = 'completed' | 'planned';
 export type ExpenseSource = 'manual' | 'text' | 'voice' | 'recurring';
@@ -48,7 +49,7 @@ type ExpensesContextType = {
   updateExpense: (id: string, expense: ExpenseInput) => Promise<void>;
   deleteExpense: (id: string) => Promise<void>;
   refreshExpenses: () => Promise<void>;
-  total: number;
+  total: number | null;
 };
 
 const ExpensesContext = createContext<ExpensesContextType | undefined>(undefined);
@@ -252,9 +253,10 @@ export function ExpensesProvider({ children }: { children: React.ReactNode }) {
   }
 
   const total = useMemo(
-    () => expenses
-      .filter((expense) => expense.status === 'completed')
-      .reduce((sum, expense) => sum + convertAmount(expense.amount, expense.currency), 0),
+    () => sumConvertedAmounts(
+      expenses.filter((expense) => expense.status === 'completed'),
+      (expense) => convertAmount(expense.amount, expense.currency)
+    ),
     [convertAmount, expenses]
   );
 

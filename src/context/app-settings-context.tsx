@@ -19,6 +19,11 @@ import {
   translate,
 } from '../lib/i18n';
 import { toLocalDateOnly } from '../lib/date-only';
+import {
+  convertCurrencyAmount,
+  isUsableExchangeRate,
+  StoredExchangeRate,
+} from '../lib/currency';
 
 export const CURRENCIES = [
   { code: 'EUR', name: 'Euro', symbol: '€' },
@@ -37,11 +42,7 @@ export type CurrencyCode = (typeof CURRENCIES)[number]['code'];
 export type ThemeMode = 'light' | 'dark';
 export type PlannedExecutionMode = 'automatic' | 'manual';
 
-type ExchangeRate = {
-  rate: number;
-  date: string;
-  fetchedAt: number;
-};
+type ExchangeRate = StoredExchangeRate;
 
 type RateStatus = 'idle' | 'loading' | 'ready' | 'error';
 
@@ -70,7 +71,7 @@ type AppSettingsContextValue = {
   convertAmount: (
     amount: number,
     sourceCurrency?: CurrencyCode
-  ) => number;
+  ) => number | null;
   formatMoney: (
     amount: number,
     sourceCurrency?: CurrencyCode
@@ -314,27 +315,29 @@ export function AppSettingsProvider({
           fetchedAt: Date.now(),
         };
       }
-      return rates[rateKey(sourceCurrency, displayCurrency)] ?? null;
+      const cached = rates[rateKey(sourceCurrency, displayCurrency)];
+      return isUsableExchangeRate(cached) ? cached : null;
     },
     [displayCurrency, inputCurrency, rates]
   );
 
   const convertAmount = useCallback(
     (amount: number, sourceCurrency: CurrencyCode = inputCurrency) => {
-      if (sourceCurrency === displayCurrency) return amount;
-      return amount * (getRate(sourceCurrency)?.rate ?? 1);
+      return convertCurrencyAmount(
+        amount,
+        sourceCurrency === displayCurrency,
+        getRate(sourceCurrency)?.rate
+      );
     },
     [displayCurrency, getRate, inputCurrency]
   );
 
   const formatMoney = useCallback(
     (amount: number, sourceCurrency: CurrencyCode = inputCurrency) => {
-      const hasConversion =
-        sourceCurrency === displayCurrency || getRate(sourceCurrency) !== null;
+      const converted = convertAmount(amount, sourceCurrency);
+      const hasConversion = converted !== null;
       const currency = hasConversion ? displayCurrency : sourceCurrency;
-      const value = hasConversion
-        ? convertAmount(amount, sourceCurrency)
-        : amount;
+      const value = converted ?? amount;
 
       return formatCurrencyAmount(value, currency, locale);
     },

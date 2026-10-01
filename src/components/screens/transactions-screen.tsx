@@ -30,6 +30,7 @@ import { Expense, useExpenses } from '../../context/expenses-context';
 import { Income, useFinance } from '../../context/finance-context';
 import { useFeedback } from '../../context/feedback-context';
 import { advanceRecurringDate } from '../../lib/recurring-dates';
+import { sumConvertedAmounts } from '../../lib/currency';
 import { useAppStyles } from '../../lib/themed-styles';
 
 type QuickPeriod = 'all' | 'today' | 'week' | 'month';
@@ -220,16 +221,17 @@ export default function TransactionsScreen({ onOpenSettings }: { onOpenSettings:
         expense.source !== filters.source
       ) return false;
 
-      if (minimum !== null && displayedAmount < minimum) return false;
-      if (maximum !== null && displayedAmount > maximum) return false;
+      if ((minimum !== null || maximum !== null) && displayedAmount === null) return false;
+      if (minimum !== null && displayedAmount !== null && displayedAmount < minimum) return false;
+      if (maximum !== null && displayedAmount !== null && displayedAmount > maximum) return false;
 
       if (normalizedQuery) {
         const amountVariants = [
           expense.amount.toString(),
           expense.amount.toFixed(2),
           expense.amount.toFixed(2).replace('.', ','),
-          displayedAmount.toString(),
-          displayedAmount.toFixed(2).replace('.', ','),
+          displayedAmount?.toString() ?? '',
+          displayedAmount?.toFixed(2).replace('.', ',') ?? '',
           formatMoney(expense.amount, expense.currency),
         ].join(' ');
         const searchable = normalizeSearch(
@@ -246,16 +248,18 @@ export default function TransactionsScreen({ onOpenSettings }: { onOpenSettings:
         return a.transactionDate.getTime() - b.transactionDate.getTime();
       }
       if (filters.sort === 'highest') {
-        return (
-          convertAmount(b.amount, b.currency) -
-          convertAmount(a.amount, a.currency)
-        );
+        const aValue = convertAmount(a.amount, a.currency);
+        const bValue = convertAmount(b.amount, b.currency);
+        if (aValue === null) return bValue === null ? 0 : 1;
+        if (bValue === null) return -1;
+        return bValue - aValue;
       }
       if (filters.sort === 'lowest') {
-        return (
-          convertAmount(a.amount, a.currency) -
-          convertAmount(b.amount, b.currency)
-        );
+        const aValue = convertAmount(a.amount, a.currency);
+        const bValue = convertAmount(b.amount, b.currency);
+        if (aValue === null) return bValue === null ? 0 : 1;
+        if (bValue === null) return -1;
+        return aValue - bValue;
       }
       return b.transactionDate.getTime() - a.transactionDate.getTime();
     });
@@ -308,10 +312,9 @@ export default function TransactionsScreen({ onOpenSettings }: { onOpenSettings:
       : dated;
   }, [filteredExpenses, filters.sort, locale, t]);
 
-  const resultTotal = filteredExpenses.reduce(
-    (sum, expense) =>
-      sum + convertAmount(expense.amount, expense.currency),
-    0
+  const resultTotal = sumConvertedAmounts(
+    filteredExpenses,
+    (expense) => convertAmount(expense.amount, expense.currency)
   );
 
   function selectPeriod(period: QuickPeriod) {
@@ -538,7 +541,9 @@ export default function TransactionsScreen({ onOpenSettings }: { onOpenSettings:
                   {filteredExpenses.length === 1 ? 'gasto' : 'gastos'}
                 </Text>
                 <Text style={styles.resultTotal}>
-                  {formatMoney(resultTotal, displayCurrency)} {t('total')}
+                  {resultTotal === null
+                    ? t('rateUpdateError')
+                    : `${formatMoney(resultTotal, displayCurrency)} ${t('total')}`}
                 </Text>
               </View>
 
@@ -722,7 +727,7 @@ function IncomeMovements({ incomes, onEdit, onDelete }: {
         }
         if (!query) return true;
         const displayed = convertAmount(income.amount, income.currency);
-        return normalizeSearch(`${income.description} ${income.amount} ${displayed} ${income.currency}`).includes(query);
+        return normalizeSearch(`${income.description} ${income.amount} ${displayed ?? ''} ${income.currency}`).includes(query);
       })
       .sort((a, b) => b.transactionDate.getTime() - a.transactionDate.getTime());
   }, [convertAmount, incomes, monthAnchor, quickPeriod, search]);
@@ -742,7 +747,10 @@ function IncomeMovements({ incomes, onEdit, onDelete }: {
     return planned.length > 0 ? [{ title: t('upcoming'), data: planned }, ...completed] : completed;
   }, [filtered, locale, t]);
 
-  const total = filtered.reduce((sum, income) => sum + convertAmount(income.amount, income.currency), 0);
+  const total = sumConvertedAmounts(
+    filtered,
+    (income) => convertAmount(income.amount, income.currency)
+  );
 
   return (
     <SectionList
@@ -769,7 +777,7 @@ function IncomeMovements({ incomes, onEdit, onDelete }: {
           <TouchableOpacity style={styles.monthLabelButton} onPress={() => setShowMonthPicker(true)}><Ionicons name="calendar-outline" size={17} color="#047857" /><Text style={[styles.monthLabel, styles.incomeMonthLabel]}>{formatMonth(monthAnchor, locale)}</Text></TouchableOpacity>
           <TouchableOpacity style={styles.monthArrow} onPress={() => setMonthAnchor((current) => new Date(current.getFullYear(), current.getMonth() + 1, 1))}><Ionicons name="chevron-forward" size={21} color="#047857" /></TouchableOpacity>
         </View>}
-        <View style={styles.resultsBar}><View><Text style={styles.resultCount}>{filtered.length} {t('incomes').toLocaleLowerCase(locale)}</Text><Text style={styles.resultTotal}>{formatMoney(total, displayCurrency)} {t('total')}</Text></View></View>
+        <View style={styles.resultsBar}><View><Text style={styles.resultCount}>{filtered.length} {t('incomes').toLocaleLowerCase(locale)}</Text><Text style={styles.resultTotal}>{total === null ? t('rateUpdateError') : `${formatMoney(total, displayCurrency)} ${t('total')}`}</Text></View></View>
       </View>}
       ListEmptyComponent={<View style={styles.emptyState}><View style={[styles.emptyIcon, styles.incomeEmptyIcon]}><Ionicons name={incomes.length === 0 ? 'wallet-outline' : 'search-outline'} size={30} color="#059669" /></View><Text style={styles.emptyTitle}>{incomes.length === 0 ? t('incomes') : t('noResults')}</Text><Text style={styles.emptyText}>{incomes.length === 0 ? t('incomeInfo') : t('noResultsHint')}</Text></View>}
       renderSectionHeader={({ section }) => <Text style={styles.sectionTitle}>{section.title}</Text>}
