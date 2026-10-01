@@ -15,7 +15,6 @@ import {
   LANGUAGE_LOCALES,
   LanguagePreference,
   TranslationKey,
-  resolveLanguage,
   translate,
 } from '../lib/i18n';
 import { toLocalDateOnly } from '../lib/date-only';
@@ -123,9 +122,6 @@ export function AppSettingsProvider({
 }: {
   children: React.ReactNode;
 }) {
-  const systemLanguage = resolveLanguage(
-    Intl.DateTimeFormat().resolvedOptions().locale
-  );
   const [inputCurrency, setInputCurrencyState] =
     useState<CurrencyCode>('EUR');
   const [displayCurrency, setDisplayCurrencyState] =
@@ -216,8 +212,8 @@ export function AppSettingsProvider({
     themeMode,
   ]);
 
-  const language =
-    languagePreference === 'system' ? systemLanguage : languagePreference;
+  // The first store release is Spanish-only while the remaining locales are completed.
+  const language: AppLanguage = 'es';
   const locale = LANGUAGE_LOCALES[language];
   const t = useCallback(
     (key: TranslationKey) => translate(language, key),

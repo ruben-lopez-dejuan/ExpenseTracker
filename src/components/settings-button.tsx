@@ -6,12 +6,12 @@ import { useAppStyles } from '../lib/themed-styles';
 
 export default function SettingsButton({ onPress }: { onPress: () => void }) {
   const styles = useAppStyles(lightStyles);
-  const { isDark } = useAppSettings();
+  const { isDark, t } = useAppSettings();
 
   return (
     <TouchableOpacity
       accessibilityRole="button"
-      accessibilityLabel="Abrir ajustes"
+      accessibilityLabel={t('openSettings')}
       style={styles.button}
       onPress={onPress}
     >

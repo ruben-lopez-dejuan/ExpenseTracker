@@ -251,7 +251,7 @@ export default function ExpenseEditorModal({
                 style={styles.currencyButton}
                 onPress={() => setCurrencyPickerVisible(true)}
                 accessibilityRole="button"
-                accessibilityLabel="Cambiar divisa del gasto"
+                accessibilityLabel={t('changeExpenseCurrency')}
               >
                 <Text style={styles.currencySymbol}>
                   {currencyInfo(currency).symbol}

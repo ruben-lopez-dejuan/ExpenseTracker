@@ -537,7 +537,7 @@ export default function CategoriesScreen({ onOpenSettings }: { onOpenSettings: (
                   }
                 >
                   {name ||
-                    'Categoría'}
+                    t('category')}
                 </Text>
               </View>
 
@@ -549,7 +549,7 @@ export default function CategoriesScreen({ onOpenSettings }: { onOpenSettings: (
                 style={styles.input}
                 value={name}
                 onChangeText={setName}
-                placeholder="Ej: Transporte"
+                placeholder={t('categoryNamePlaceholder')}
                 placeholderTextColor="#9CA3AF"
               />
 
@@ -565,7 +565,7 @@ export default function CategoriesScreen({ onOpenSettings }: { onOpenSettings: (
                 }
                 multiline
                 textAlignVertical="top"
-                placeholder="Describe con tus palabras qué gastos pertenecen aquí."
+                placeholder={t('categoryDescriptionPlaceholder')}
                 placeholderTextColor="#9CA3AF"
               />
 

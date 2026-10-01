@@ -322,7 +322,7 @@ export default function AddExpenseScreen({
                   style={styles.currencyButton}
                   onPress={() => setCurrencyPickerVisible(true)}
                   accessibilityRole="button"
-                  accessibilityLabel="Cambiar divisa del gasto"
+                  accessibilityLabel={t('changeExpenseCurrency')}
                 >
                   <Text style={styles.currencySymbol}>
                     {currencyInfo(expenseCurrency).symbol}

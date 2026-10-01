@@ -23,7 +23,6 @@ import { useAuth } from '../../context/auth-context';
 import { useFeedback } from '../../context/feedback-context';
 import { useConnectivity } from '../../context/connectivity-context';
 import { useAppStyles } from '../../lib/themed-styles';
-import { LANGUAGE_OPTIONS } from '../../lib/i18n';
 import { clearOfflineUserData } from '../../lib/offline-storage';
 import { supabase } from '../../lib/supabase';
 
@@ -44,7 +43,6 @@ export default function SettingsScreen({
     inputCurrency,
     displayCurrency,
     themeMode,
-    languagePreference,
     language,
     locale,
     plannedExecutionMode,
@@ -52,7 +50,6 @@ export default function SettingsScreen({
     setInputCurrency,
     setDisplayCurrency,
     setThemeMode,
-    setLanguagePreference,
     setPlannedExecutionMode,
     t,
     refreshRates,
@@ -170,6 +167,29 @@ export default function SettingsScreen({
           </TouchableOpacity>
         </View>
 
+        <Text style={styles.sectionTitle}>{t('preferences')}</Text>
+        <View style={styles.themeControl}>
+          <ThemeOption
+            styles={styles}
+            label={t('automatic')}
+            icon="flash-outline"
+            selected={plannedExecutionMode === 'automatic'}
+            onPress={() => setPlannedExecutionMode('automatic')}
+          />
+          <ThemeOption
+            styles={styles}
+            label={t('manual')}
+            icon="hand-left-outline"
+            selected={plannedExecutionMode === 'manual'}
+            onPress={() => setPlannedExecutionMode('manual')}
+          />
+        </View>
+        <Text style={styles.preferenceHint}>
+          {plannedExecutionMode === 'automatic'
+            ? t('automaticDescription')
+            : t('manualDescription')}
+        </Text>
+
         <Text style={styles.sectionTitle}>{t('currencies')}</Text>
         <View style={styles.card}>
           <SettingRow
@@ -241,43 +261,7 @@ export default function SettingsScreen({
           />
         </View>
 
-        <Text style={styles.sectionTitle}>{t('language')}</Text>
-        <View style={styles.languageControl}>
-          {LANGUAGE_OPTIONS.map((option) => (
-            <LanguageOption
-              key={option.value}
-              styles={styles}
-              label={option.value === 'system' ? t('systemLanguage') : option.label}
-              selected={languagePreference === option.value}
-              onPress={() => setLanguagePreference(option.value)}
-            />
-          ))}
-        </View>
-
-        <Text style={styles.sectionTitle}>{t('plannedMovements')}</Text>
-        <View style={styles.themeControl}>
-          <ThemeOption
-            styles={styles}
-            label={t('automatic')}
-            icon="flash-outline"
-            selected={plannedExecutionMode === 'automatic'}
-            onPress={() => setPlannedExecutionMode('automatic')}
-          />
-          <ThemeOption
-            styles={styles}
-            label={t('manual')}
-            icon="hand-left-outline"
-            selected={plannedExecutionMode === 'manual'}
-            onPress={() => setPlannedExecutionMode('manual')}
-          />
-        </View>
-        <Text style={styles.preferenceHint}>
-          {plannedExecutionMode === 'automatic'
-            ? t('automaticDescription')
-            : t('manualDescription')}
-        </Text>
-
-        <Text style={styles.sectionTitle}>{t('categorization')}</Text>
+        <Text style={styles.sectionTitle}>{t('categories')}</Text>
         <View style={styles.card}>
           <SettingRow
             styles={styles}
@@ -287,7 +271,10 @@ export default function SettingsScreen({
             title={t('categorySuggestions')}
             value={t('categorySuggestionsDescription')}
           />
-          <View style={styles.divider} />
+        </View>
+
+        <Text style={styles.sectionTitle}>{t('dataAndPrivacy')}</Text>
+        <View style={styles.card}>
           <SettingRow
             styles={styles}
             icon="shield-checkmark-outline"
@@ -296,10 +283,7 @@ export default function SettingsScreen({
             title={t('privacy')}
             value={t('privacyDescription')}
           />
-        </View>
-
-        <Text style={styles.sectionTitle}>{t('information')}</Text>
-        <View style={styles.card}>
+          <View style={styles.divider} />
           <SettingRow
             styles={styles}
             icon={connectivityStatus === 'online' ? 'cloud-done-outline' : 'cloud-offline-outline'}
@@ -313,7 +297,10 @@ export default function SettingsScreen({
                 : t('checkingConnection')}
             onPress={connectivityStatus === 'offline' ? retryConnectivity : undefined}
           />
-          <View style={styles.divider} />
+        </View>
+
+        <Text style={styles.sectionTitle}>{t('about')}</Text>
+        <View style={styles.card}>
           <SettingRow
             styles={styles}
             icon="information-circle-outline"
@@ -491,34 +478,6 @@ function ThemeOption({
   );
 }
 
-function LanguageOption({
-  styles,
-  label,
-  selected,
-  onPress,
-}: {
-  styles: typeof lightStyles;
-  label: string;
-  selected: boolean;
-  onPress: () => void;
-}) {
-  return (
-    <TouchableOpacity
-      style={[styles.languageOption, selected && styles.themeOptionSelected]}
-      onPress={onPress}
-    >
-      <Text style={[styles.languageText, selected && styles.themeTextSelected]}>
-        {label}
-      </Text>
-      <Ionicons
-        name={selected ? 'checkmark-circle' : 'ellipse-outline'}
-        size={19}
-        color={selected ? '#4F46E5' : '#9CA3AF'}
-      />
-    </TouchableOpacity>
-  );
-}
-
 const lightStyles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: '#F6F7F9' },
   content: { flexGrow: 1, paddingHorizontal: 20, paddingBottom: 32 },
@@ -564,13 +523,6 @@ const lightStyles = StyleSheet.create({
   rateText: { flex: 1 },
   rateProvider: { marginTop: 5, fontSize: 11, color: '#9CA3AF' },
   themeControl: { flexDirection: 'row', gap: 10 },
-  languageControl: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-  languageOption: {
-    width: '48%', minHeight: 52, paddingHorizontal: 14, borderRadius: 15,
-    borderWidth: 1, borderColor: '#E5E7EB', backgroundColor: '#FFFFFF',
-    flexDirection: 'row', alignItems: 'center', gap: 8,
-  },
-  languageText: { flex: 1, fontSize: 14, fontWeight: '700', color: '#4B5563' },
   themeOption: {
     flex: 1,
     minHeight: 58,
