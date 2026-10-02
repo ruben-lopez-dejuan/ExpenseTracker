@@ -3,7 +3,7 @@
 ## Estado técnico preparado
 
 - Nombre visible: `Expense Tracker`.
-- Identificador Android: `com.expensetracker.app`.
+- Identificador Android: `rld.expensetracker.app`.
 - Versión: `1.1.0`.
 - Formato de producción: Android App Bundle (`.aab`).
 - SDK objetivo: Android 16 / API 36 mediante Expo SDK 57.
@@ -11,7 +11,7 @@
 - Copias de seguridad del sistema Android: desactivadas.
 - Incremento de versión de Play: automático mediante EAS.
 
-El identificador de aplicación queda fijado en cuanto se crea la aplicación en Play Console. Comprueba que Play Console acepta `com.expensetracker.app` antes de distribuir la primera versión.
+El identificador de aplicación queda fijado en cuanto se crea la aplicación en Play Console. Play Console debe aceptar `rld.expensetracker.app` antes de distribuir la primera versión.
 
 ## Antes de construir
 

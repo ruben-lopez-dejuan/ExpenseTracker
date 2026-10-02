@@ -38,7 +38,7 @@
       }
     },
     "android": {
-      "package": "com.expensetracker.app",
+      "package": "rld.expensetracker.app",
       "allowBackup": false,
       "blockedPermissions": [
         "android.permission.READ_EXTERNAL_STORAGE",
